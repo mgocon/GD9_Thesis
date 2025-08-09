@@ -987,7 +987,7 @@ MonoBehaviour:
   ModelPath: vosk-model-en-us-0.42-gigaspeech.zip
   VoiceProcessor: {fileID: 1454794998}
   MaxAlternatives: 3
-  MaxRecordLength: 5
+  MaxRecordLength: 4
   AutoStart: 1
   KeyPhrases: []
 --- !u!114 &1454794998
