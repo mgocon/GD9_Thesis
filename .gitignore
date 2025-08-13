@@ -97,3 +97,4 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+Assets/StreamingAssets/vosk-model-en-us-0.42-gigaspeech.zip
