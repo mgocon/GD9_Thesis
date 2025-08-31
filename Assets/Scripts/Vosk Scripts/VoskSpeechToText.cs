@@ -14,6 +14,15 @@ using Vosk;
 
 public class VoskSpeechToText : MonoBehaviour
 {
+	public static VoskSpeechToText current;
+	public float progress;
+	
+
+	private void Awake()
+	{
+		current = this;
+	}
+
 	[Tooltip("Location of the model, relative to the Streaming Assets folder.")]
 	public string ModelPath = "vosk-model-en-us-0.42-gigaspeech.zip";
 
@@ -343,5 +352,5 @@ public class VoskSpeechToText : MonoBehaviour
 	}
 
 
-
+	public bool IsReady => _didInit;
 }
