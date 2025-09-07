@@ -13,7 +13,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'data_preprocessing'))
 
 class InterviewEnvironment(gym.Env):
-    def __init__(self, features_dim=30):
+    def __init__(self, features_dim=25):  # Changed from 30 to 25
         super(InterviewEnvironment, self).__init__()
         
         # Define action space (feedback types for interview coaching)
@@ -29,11 +29,16 @@ class InterviewEnvironment(gym.Env):
         
         # Define observation space
         # Speech features (25) + Performance metrics (5) = 30 total
+        total_obs_dim = features_dim + 5  # 25 + 5 = 30
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, 
-            shape=(features_dim,),
+            shape=(total_obs_dim,),
             dtype=np.float32
         )
+        
+        # Store dimensions for consistency
+        self.speech_features_dim = features_dim  # 25
+        self.performance_metrics_dim = 5
         
         # Interview simulation state
         self.max_questions = 8  # Questions per interview session
@@ -55,6 +60,16 @@ class InterviewEnvironment(gym.Env):
             features, labels, filenames = loader.process_dataset()
             
             if features is not None and len(features) > 0:
+                # Ensure features have correct dimension
+                if features.shape[1] != self.speech_features_dim:
+                    print(f"Resizing features from {features.shape[1]} to {self.speech_features_dim}")
+                    if features.shape[1] > self.speech_features_dim:
+                        features = features[:, :self.speech_features_dim]
+                    else:
+                        # Pad with zeros if too small
+                        padding = np.zeros((features.shape[0], self.speech_features_dim - features.shape[1]))
+                        features = np.concatenate([features, padding], axis=1)
+                
                 self.background_features = features
                 self.background_labels = labels
                 print(f"Loaded {len(features)} real IEMOCAP samples for simulation")
@@ -62,6 +77,15 @@ class InterviewEnvironment(gym.Env):
                 # Fall back to simulated data
                 print("Real IEMOCAP data not available, generating simulated data...")
                 features, labels, filenames = loader.generate_simulated_data(1000)
+                
+                # Ensure correct dimensions
+                if features.shape[1] != self.speech_features_dim:
+                    if features.shape[1] > self.speech_features_dim:
+                        features = features[:, :self.speech_features_dim]
+                    else:
+                        padding = np.zeros((features.shape[0], self.speech_features_dim - features.shape[1]))
+                        features = np.concatenate([features, padding], axis=1)
+                
                 self.background_features = features
                 self.background_labels = labels
                 print(f"Generated {len(features)} simulated samples for training")
@@ -86,6 +110,10 @@ class InterviewEnvironment(gym.Env):
         
         # Combine speech features with performance metrics
         observation = np.concatenate([self.current_speech_features, initial_performance])
+        
+        # Ensure correct dimensions
+        assert len(observation) == self.observation_space.shape[0], f"Observation dim mismatch: {len(observation)} != {self.observation_space.shape[0]}"
+        
         return observation.astype(np.float32)
     
     def step(self, action):
@@ -118,6 +146,9 @@ class InterviewEnvironment(gym.Env):
         # Create new observation
         observation = np.concatenate([self.current_speech_features, new_performance])
         
+        # Ensure correct dimensions
+        assert len(observation) == self.observation_space.shape[0], f"Observation dim mismatch: {len(observation)} != {self.observation_space.shape[0]}"
+        
         # Info for analysis
         info = {
             'feedback_action': self.feedback_types[action],
@@ -141,7 +172,7 @@ class InterviewEnvironment(gym.Env):
             return base_features + noise
         else:
             # Fallback to random features if no background data
-            return np.random.randn(25)  # 25 speech features
+            return np.random.randn(self.speech_features_dim)  # 25 speech features
     
     def _generate_next_features(self, performance):
         """Generate speech features for next response based on current performance"""

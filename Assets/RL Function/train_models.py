@@ -377,17 +377,22 @@ def create_comprehensive_plots(dqn_scores, ppo_scores, dqn_actions, ppo_actions,
     
     plt.show()
 
+# ... (keep all the existing code, just update the main function)
+
 def main():
     """Main training function"""
     print("🚀 Starting Interview Training RL Experiment")
     print("="*60)
     print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    # Create environment
-    env = InterviewEnvironment(features_dim=30)
+    # Create environment with correct dimensions
+    env = InterviewEnvironment(features_dim=25)  # Changed from 30 to 25
     print(f"\n🎮 Environment created")
     print(f"   Observation space: {env.observation_space.shape}")
     print(f"   Action space: {env.action_space.n}")
+    print(f"   Speech features: {env.speech_features_dim}")
+    print(f"   Performance metrics: {env.performance_metrics_dim}")
+    print(f"   Total observation: {env.speech_features_dim + env.performance_metrics_dim}")
     print(f"   Feedback types: {env.feedback_types}")
     
     # Training parameters

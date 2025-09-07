@@ -32,7 +32,64 @@ class IEMOCAPLoader:
         
         if self.csv_path is None:
             print("IEMOCAP CSV not found, will use simulated data")
-        
+    
+    def extract_features_from_audio_path(self, audio_path, sr=16000):
+        """Extract exactly 25 speech features for consistency"""
+        try:
+            # Load audio file
+            y, sr = librosa.load(audio_path, sr=sr)
+            
+            # Initialize features list to ensure exactly 25 features
+            features = []
+            
+            # 1. Speech rate estimation (1 feature)
+            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+            features.append(tempo)
+            
+            # 2. Pitch features (3 features)
+            pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
+            pitch_values = pitches[pitches > 0]
+            features.append(np.mean(pitch_values) if len(pitch_values) > 0 else 0)  # pitch_mean
+            features.append(np.std(pitch_values) if len(pitch_values) > 0 else 0)   # pitch_std
+            features.append(np.max(pitch_values) - np.min(pitch_values) if len(pitch_values) > 0 else 0)  # pitch_range
+            
+            # 3. Energy features (3 features)
+            rms = librosa.feature.rms(y=y)[0]
+            features.append(np.mean(rms))  # energy_mean
+            features.append(np.std(rms))   # energy_std
+            features.append(np.max(rms))   # energy_max
+            
+            # 4. Spectral features (3 features)
+            spectral_centroids = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
+            features.append(np.mean(spectral_centroids))  # spectral_centroid_mean
+            features.append(np.std(spectral_centroids))   # spectral_centroid_std
+            
+            spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)[0]
+            features.append(np.mean(spectral_rolloff))    # spectral_rolloff_mean
+            
+            # 5. MFCC features (13 features)
+            mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
+            for i in range(13):
+                features.append(np.mean(mfccs[i]))
+            
+            # 6. Zero crossing rate (2 features)
+            zcr = librosa.feature.zero_crossing_rate(y)[0]
+            features.append(np.mean(zcr))  # zcr_mean
+            features.append(np.std(zcr))   # zcr_std
+            
+            # Total so far: 1 + 3 + 3 + 3 + 13 + 2 = 25 features
+            
+            # Ensure exactly 25 features
+            features = features[:25]  # Truncate if too many
+            while len(features) < 25:  # Pad if too few
+                features.append(0.0)
+            
+            return np.array(features)
+            
+        except Exception as e:
+            print(f"Error processing audio {audio_path}: {e}")
+            return None
+    
     def load_csv_data(self):
         """Load data from CSV file"""
         if self.csv_path is None:
@@ -45,66 +102,6 @@ class IEMOCAPLoader:
             return df
         except Exception as e:
             print(f"Error loading CSV: {e}")
-            return None
-    
-    def extract_features_from_audio_path(self, audio_path, sr=16000):
-        """Extract speech features for interview assessment"""
-        try:
-            # Load audio file
-            y, sr = librosa.load(audio_path, sr=sr)
-            
-            # Feature dictionary
-            features = {}
-            
-            # 1. Speech rate estimation
-            tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-            features['speech_rate'] = tempo
-            
-            # 2. Pitch features (fundamental frequency)
-            pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
-            pitch_values = pitches[pitches > 0]
-            features['pitch_mean'] = np.mean(pitch_values) if len(pitch_values) > 0 else 0
-            features['pitch_std'] = np.std(pitch_values) if len(pitch_values) > 0 else 0
-            features['pitch_range'] = np.max(pitch_values) - np.min(pitch_values) if len(pitch_values) > 0 else 0
-            
-            # 3. Energy features (confidence indicators)
-            rms = librosa.feature.rms(y=y)[0]
-            features['energy_mean'] = np.mean(rms)
-            features['energy_std'] = np.std(rms)
-            features['energy_max'] = np.max(rms)
-            
-            # 4. Spectral features
-            spectral_centroids = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
-            features['spectral_centroid_mean'] = np.mean(spectral_centroids)
-            features['spectral_centroid_std'] = np.std(spectral_centroids)
-            
-            spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)[0]
-            features['spectral_rolloff_mean'] = np.mean(spectral_rolloff)
-            
-            # 5. MFCC features (first 13 coefficients)
-            mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-            for i in range(13):
-                features[f'mfcc_{i}'] = np.mean(mfccs[i])
-            
-            # 6. Zero crossing rate (speech clarity)
-            zcr = librosa.feature.zero_crossing_rate(y)[0]
-            features['zcr_mean'] = np.mean(zcr)
-            features['zcr_std'] = np.std(zcr)
-            
-            # 7. Pause and silence analysis
-            frame_length = 2048
-            hop_length = 512
-            silence_threshold = 0.01
-            silent_frames = rms < silence_threshold
-            pause_count = np.sum(np.diff(silent_frames.astype(int)) == 1)
-            total_frames = len(rms)
-            features['pause_count'] = pause_count
-            features['silence_ratio'] = np.sum(silent_frames) / total_frames
-            
-            return np.array(list(features.values()))
-            
-        except Exception as e:
-            print(f"Error processing audio {audio_path}: {e}")
             return None
     
     def process_dataset(self):
@@ -141,6 +138,57 @@ class IEMOCAPLoader:
         print(f"Successfully processed {len(all_features)} samples")
         return np.array(all_features), np.array(all_labels), all_filenames
     
+    def generate_simulated_data(self, num_samples=1000):
+        """Generate exactly 25 simulated features per sample"""
+        print(f"Generating {num_samples} simulated samples with 25 features each...")
+        
+        all_features = []
+        all_labels = []
+        
+        for i in range(num_samples):
+            features = []
+            
+            # 1. Speech rate (1 feature)
+            features.append(np.random.normal(150, 25))  # words per minute
+            
+            # 2. Pitch features (3 features)
+            pitch_mean = np.random.normal(180, 40)
+            features.append(max(80, pitch_mean))  # pitch_mean
+            features.append(np.random.normal(20, 5))   # pitch_std
+            features.append(np.random.normal(100, 30)) # pitch_range
+            
+            # 3. Energy features (3 features)
+            features.append(np.random.beta(2, 2))      # energy_mean
+            features.append(np.random.exponential(0.1)) # energy_std
+            features.append(np.random.beta(2, 2) + np.random.exponential(0.2)) # energy_max
+            
+            # 4. Spectral features (3 features)
+            features.append(np.random.normal(2000, 500))  # spectral_centroid_mean
+            features.append(np.random.normal(300, 100))   # spectral_centroid_std
+            features.append(np.random.normal(4000, 1000)) # spectral_rolloff_mean
+            
+            # 5. MFCC features (13 features)
+            for j in range(13):
+                features.append(np.random.normal(0, 15))
+            
+            # 6. Zero crossing rate (2 features)
+            features.append(np.random.beta(1, 3) * 0.5)   # zcr_mean
+            features.append(np.random.exponential(0.05))  # zcr_std
+            
+            # Ensure exactly 25 features
+            features = features[:25]
+            while len(features) < 25:
+                features.append(0.0)
+            
+            # Random emotion label
+            emotion_label = np.random.randint(0, 8)
+            
+            all_features.append(np.array(features))
+            all_labels.append(emotion_label)
+        
+        print(f"Generated {len(all_features)} simulated samples with {len(all_features[0])} features each")
+        return np.array(all_features), np.array(all_labels), [f"simulated_{i}" for i in range(len(all_features))]
+    
     def create_interview_performance_data(self, features, labels, num_samples=1000):
         """Convert emotion data to interview performance simulation data"""
         # Map emotions to interview performance metrics
@@ -169,55 +217,3 @@ class IEMOCAPLoader:
             interview_data.append(combined_features)
         
         return np.array(interview_data)
-    
-    def generate_simulated_data(self, num_samples=1000):
-        """Generate simulated data when real IEMOCAP is not available"""
-        print(f"Generating {num_samples} simulated samples...")
-        
-        all_features = []
-        all_labels = []
-        
-        for i in range(num_samples):
-            # Generate realistic speech features
-            features = {}
-            
-            # Speech rate (words per minute, typical range 120-180)
-            features['speech_rate'] = np.random.normal(150, 25)
-            
-            # Pitch features (Hz, typical range 80-300 for adults)
-            pitch_mean = np.random.normal(180, 40)
-            features['pitch_mean'] = max(80, pitch_mean)
-            features['pitch_std'] = np.random.normal(20, 5)
-            features['pitch_range'] = np.random.normal(100, 30)
-            
-            # Energy features (normalized 0-1)
-            features['energy_mean'] = np.random.beta(2, 2)  # Beta distribution for 0-1 range
-            features['energy_std'] = np.random.exponential(0.1)
-            features['energy_max'] = features['energy_mean'] + np.random.exponential(0.2)
-            
-            # Spectral features
-            features['spectral_centroid_mean'] = np.random.normal(2000, 500)
-            features['spectral_centroid_std'] = np.random.normal(300, 100)
-            features['spectral_rolloff_mean'] = np.random.normal(4000, 1000)
-            
-            # MFCC features (typically range -50 to 50)
-            for j in range(13):
-                features[f'mfcc_{j}'] = np.random.normal(0, 15)
-            
-            # Zero crossing rate (typical range 0-0.5)
-            features['zcr_mean'] = np.random.beta(1, 3) * 0.5
-            features['zcr_std'] = np.random.exponential(0.05)
-            
-            # Pause analysis
-            features['pause_count'] = np.random.poisson(3)  # Average 3 pauses
-            features['silence_ratio'] = np.random.beta(1, 4)  # Low silence ratio
-            
-            # Random emotion label
-            emotion_label = np.random.randint(0, 8)
-            
-            feature_array = np.array(list(features.values()))
-            all_features.append(feature_array)
-            all_labels.append(emotion_label)
-        
-        print(f"Generated {len(all_features)} simulated samples")
-        return np.array(all_features), np.array(all_labels), [f"simulated_{i}" for i in range(len(all_features))]
