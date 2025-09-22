@@ -29,6 +29,7 @@ public class GameManager : MonoBehaviour
 
     public IEnumerator GetSceneLoadProgress()
     {
+        // Wait for Unity scenes to load
         for (int i = 0; i < scenesLoading.Count; i++)
         {
             while (!scenesLoading[i].isDone)
@@ -36,6 +37,19 @@ public class GameManager : MonoBehaviour
                 yield return null;
             }
         }
+
+        // ✅ Wait for Vosk initialization
+        VoskSpeechToText vosk = FindObjectOfType<VoskSpeechToText>();
+        if (vosk != null)
+        {
+            while (!vosk.RecognizerReady)
+            {
+                yield return null;
+            }
+        }
+
+
+        // Hide loading screen only when everything is ready
         loadingScreen.gameObject.SetActive(false);
     }
 }

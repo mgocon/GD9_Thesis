@@ -863,8 +863,6 @@ GameObject:
   - component: {fileID: 1454794993}
   - component: {fileID: 1454794992}
   - component: {fileID: 1454794996}
-  - component: {fileID: 1454794998}
-  - component: {fileID: 1454794997}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -972,40 +970,6 @@ MonoBehaviour:
   currentScene: {fileID: 11400000, guid: df93436d412c6134fad99a0337fdb923, type: 2}
   bottomBar: {fileID: 2010630086}
   backgroundController: {fileID: 742365837}
---- !u!114 &1454794997
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1454794991}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f25d4ca4bb0c0374bb959f2588fa7c58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ModelPath: vosk-model-en-us-0.42-gigaspeech.zip
-  VoiceProcessor: {fileID: 1454794998}
-  MaxAlternatives: 3
-  MaxRecordLength: 5
-  AutoStart: 1
-  KeyPhrases: []
---- !u!114 &1454794998
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1454794991}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a5e58a26d2cd7434ca7f678f9c724e29, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  selectedDevice: 
-  _minimumSpeakingSampleValue: 0.05
-  _silenceTimer: 1
-  _autoDetect: 0
 --- !u!1 &1684938035
 GameObject:
   m_ObjectHideFlags: 0
@@ -1056,7 +1020,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7126b35b38026b64d8b86222145e037c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  VoskSpeechToText: {fileID: 1454794997}
+  VoskSpeechToText: {fileID: 0}
   dialogueBox: {fileID: 1684938038}
   speakerNameText: {fileID: 191685222}
   typingSpeed: 0.03

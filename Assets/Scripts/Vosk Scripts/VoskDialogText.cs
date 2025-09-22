@@ -4,7 +4,7 @@ using System.Collections;
 
 public class VoskDialogText : MonoBehaviour 
 {
-    public VoskSpeechToText VoskSpeechToText;
+    public VoskSpeechToText VoskSpeechToText;  // Auto-linked to persistent one
     public TextMeshProUGUI dialogueBox;        // Dialog box for displaying text
     public TextMeshProUGUI speakerNameText;    // Optional: Text field for speaker name
     public float typingSpeed = 0.05f;          // Speed of text appearing
@@ -14,14 +14,36 @@ public class VoskDialogText : MonoBehaviour
 
     void Awake()
     {
-        VoskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
-        
-        // Initialize text components
+        // Ask VoskManager for the speech-to-text instance
+        if (VoskManager.Instance != null)
+        {
+            VoskSpeechToText = VoskManager.Instance.GetSpeechToText();
+        }
+
+        if (VoskSpeechToText != null)
+        {
+            VoskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
+        }
+        else
+        {
+            Debug.LogWarning("No VoskSpeechToText found. Did you place VoskManager in your persistent scene?");
+        }
+
+        // Initialize text fields
         if (dialogueBox != null)
             dialogueBox.text = "";
         if (speakerNameText != null)
-            speakerNameText.text = "Player"; // Name of Player
+            speakerNameText.text = "Player";
     }
+
+    void OnDestroy()
+    {
+        if (VoskSpeechToText != null)
+        {
+            VoskSpeechToText.OnTranscriptionResult -= OnTranscriptionResult;
+        }
+    }
+
 
     private void OnTranscriptionResult(string obj)
     {

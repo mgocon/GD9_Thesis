@@ -100,8 +100,18 @@ public class VoskSpeechToText : MonoBehaviour
         yield return LoadModelAsync();
 
         OnStatusUpdated?.Invoke("Initialized");
-        VoiceProcessor.OnFrameCaptured += VoiceProcessorOnOnFrameCaptured;
-        VoiceProcessor.OnRecordingStop += VoiceProcessorOnOnRecordingStop;
+		if (VoiceProcessor != null)
+		{
+			VoiceProcessor.OnFrameCaptured += VoiceProcessorOnOnFrameCaptured;
+			VoiceProcessor.OnRecordingStop += VoiceProcessorOnOnRecordingStop;
+
+			if (startMicrophone)
+				VoiceProcessor.StartRecording();
+		}
+		else
+		{
+			Debug.LogWarning("No VoiceProcessor assigned! Vosk will initialize without microphone input.");
+		}
 
         if (startMicrophone)
             VoiceProcessor.StartRecording();
