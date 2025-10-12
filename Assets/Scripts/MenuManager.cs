@@ -26,7 +26,8 @@ public class MenuManager : MonoBehaviour
         // transitionAnimator.gameObject.SetActive(true); // enable before fade-out
         // sceneToLoad = sceneName;
         // transitionAnimator.SetTrigger("FadeOut");
-        SceneManager.LoadScene(sceneName);
+        // SceneManager.LoadScene(sceneName);
+        GameManager.instance.LoadGame();
     }
 
     public void OnFadeComplete()
