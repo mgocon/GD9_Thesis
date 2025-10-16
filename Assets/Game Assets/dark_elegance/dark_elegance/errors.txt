@@ -1,0 +1,10 @@
+﻿I'm sorry, but errors were detected in your script. Please correct the
+errors listed below, and try again.
+
+
+File "game/screens.rpy", line 359: 'xyanchor' is not a keyword argument or valid child of the text statement.
+    text "Title Here" size 60 xpos 501 ypos 225 xyanchor (0.5, 0.5)
+                                                        ^
+
+Ren'Py Version: Ren'Py 8.1.1.23060707
+Tue Nov  7 20:02:40 2023

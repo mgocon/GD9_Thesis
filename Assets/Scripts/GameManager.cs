@@ -17,14 +17,39 @@ public class GameManager : MonoBehaviour
     }
 
     List<AsyncOperation> scenesLoading = new List<AsyncOperation>();
-    public void LoadGame()
-    {
-        loadingScreen.gameObject.SetActive(true);
 
+    // Backwards-compatible parameterless call: loads ENTRY_LEVEL
+    // public void LoadGame()
+    // {
+    //     LoadGame(((int)SceneIndexes.ENTRY_LEVEL).ToString());
+    // }
+
+    // New API: load scene by name (requested from MenuManager)
+    public void LoadGame(string sceneName)
+    {
+        if (loadingScreen != null) loadingScreen.gameObject.SetActive(true);
+
+        scenesLoading.Clear();
         scenesLoading.Add(SceneManager.UnloadSceneAsync((int)SceneIndexes.MAIN_MENU));
-        scenesLoading.Add(SceneManager.LoadSceneAsync((int)SceneIndexes.TUTORIAL_SCENE, LoadSceneMode.Additive));
+
+        // Try load by name. If the sceneName is a numeric string representing build index, try parse it.
+        int parsedIndex;
+        if (int.TryParse(sceneName, out parsedIndex))
+        {
+            scenesLoading.Add(SceneManager.LoadSceneAsync(parsedIndex, LoadSceneMode.Additive));
+        }
+        else
+        {
+            scenesLoading.Add(SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive));
+        }
 
         StartCoroutine(GetSceneLoadProgress());
+    }
+
+    // Explicit helper to avoid ambiguous overload resolution from other callers
+    public void LoadGameByName(string sceneName)
+    {
+        LoadGame(sceneName);
     }
 
     public IEnumerator GetSceneLoadProgress()
