@@ -8,5 +8,5 @@ public enum SceneIndexes
     MAIN_MENU = 1,
     TUTORIAL_SCENE = 2,
     ENTRY_LEVEL = 3,
-    SENIOR_LEVEL = 4
+    SENIORLEVEL_SCENE = 4
 }
