@@ -15,6 +15,7 @@ public class BottomBarController : MonoBehaviour
 
     private int sentenceIndex = -1;
     private StoryScene currentScene;
+    private List<int> playbackOrder;
     private State state = State.COMPLETED;
     private enum State
     {
@@ -25,14 +26,43 @@ public class BottomBarController : MonoBehaviour
     {
         currentScene = scene;
         sentenceIndex = -1;
+        // build playback order
+        int count = currentScene.sentences != null ? currentScene.sentences.Count : 0;
+        int targetCount = (currentScene.sentencesToUse <= 0) ? count : Mathf.Clamp(currentScene.sentencesToUse, 1, count);
+
+        // start with full index list
+        List<int> indices = new List<int>(count);
+        for (int i = 0; i < count; i++) indices.Add(i);
+
+        if (currentScene != null && currentScene.randomizeSentences && count > 1)
+        {
+            // Fisher-Yates shuffle on indices
+            for (int i = count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                int tmp = indices[i];
+                indices[i] = indices[j];
+                indices[j] = tmp;
+            }
+            // take the first targetCount shuffled indices
+            playbackOrder = indices.GetRange(0, Mathf.Min(targetCount, indices.Count));
+        }
+        else
+        {
+            // take the first targetCount indices in order
+            playbackOrder = indices.GetRange(0, Mathf.Min(targetCount, indices.Count));
+        }
         PlayNextSentence();
     }
 
     public void PlayNextSentence()
     {
-        StartCoroutine(TypeText(currentScene.sentences[++sentenceIndex].text));
-        personNameText.text = currentScene.sentences[sentenceIndex].speaker.speakerName;
-        personNameText.color = currentScene.sentences[sentenceIndex].speaker.textColor;
+        sentenceIndex++;
+        if (playbackOrder == null || sentenceIndex < 0 || sentenceIndex >= playbackOrder.Count) return;
+        int idx = playbackOrder[sentenceIndex];
+        StartCoroutine(TypeText(currentScene.sentences[idx].text));
+        personNameText.text = currentScene.sentences[idx].speaker.speakerName;
+        personNameText.color = currentScene.sentences[idx].speaker.textColor;
     }
 
     public bool IsCompleted()
@@ -42,7 +72,7 @@ public class BottomBarController : MonoBehaviour
 
     public bool IsLastSentence()
     {
-        return sentenceIndex + 1 == currentScene.sentences.Count;
+        return playbackOrder != null && (sentenceIndex + 1 == playbackOrder.Count);
     }
 
     private IEnumerator TypeText(string text)

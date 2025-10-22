@@ -7,6 +7,10 @@ using UnityEngine;
 public class StoryScene : ScriptableObject
 {
     public List<Sentence> sentences;
+    [Tooltip("If true, sentences will be played in a random order when this scene is played.")]
+    public bool randomizeSentences = false;
+    [Tooltip("Number of sentences to use when playing this scene. 0 = use all available sentences.")]
+    public int sentencesToUse = 0;
     public Sprite background;
     public StoryScene nextScene;
 
