@@ -12,6 +12,7 @@ public class BottomBarController : MonoBehaviour
     public float slideDuration = 0.25f; // seconds
 
     private bool isSpeakImageVisible = false;
+    private Coroutine slideCoroutine;
 
     private int sentenceIndex = -1;
     private StoryScene currentScene;
@@ -97,8 +98,13 @@ public class BottomBarController : MonoBehaviour
     public void OnSpeakButtonPressed()
     {
         if (speakImage == null) return;
-        StopAllCoroutines(); // stop any running slide coroutines
-        StartCoroutine(SlideSpeakImage(!isSpeakImageVisible));
+        // Stop only the slide coroutine so we don't interrupt the typewriter coroutine
+        if (slideCoroutine != null)
+        {
+            StopCoroutine(slideCoroutine);
+            slideCoroutine = null;
+        }
+        slideCoroutine = StartCoroutine(SlideSpeakImage(!isSpeakImageVisible));
     }
 
     private IEnumerator SlideSpeakImage(bool show)
@@ -123,6 +129,9 @@ public class BottomBarController : MonoBehaviour
         }
 
         speakImage.anchoredPosition = end;
+
+    // clear reference so it can be restarted next time
+    slideCoroutine = null;
 
         // Optionally disable when hidden
         if (!show) speakImage.gameObject.SetActive(false);
