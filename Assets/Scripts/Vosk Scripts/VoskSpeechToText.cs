@@ -100,26 +100,24 @@ public class VoskSpeechToText : MonoBehaviour
         yield return LoadModelAsync();
 
         OnStatusUpdated?.Invoke("Initialized");
-		if (VoiceProcessor != null)
-		{
-			VoiceProcessor.OnFrameCaptured += VoiceProcessorOnOnFrameCaptured;
-			VoiceProcessor.OnRecordingStop += VoiceProcessorOnOnRecordingStop;
+        if (VoiceProcessor != null)
+        {
+            VoiceProcessor.OnFrameCaptured += VoiceProcessorOnOnFrameCaptured;
+            VoiceProcessor.OnRecordingStop += VoiceProcessorOnOnRecordingStop;
 
-			if (startMicrophone)
-				VoiceProcessor.StartRecording();
-		}
-		else
-		{
-			Debug.LogWarning("No VoiceProcessor assigned! Vosk will initialize without microphone input.");
-		}
+            if (startMicrophone)
+                VoiceProcessor.StartRecording();
+        }
+        else
+        {
+            Debug.LogWarning("No VoiceProcessor assigned! Vosk will initialize without microphone input.");
+        }
 
         if (startMicrophone)
             VoiceProcessor.StartRecording();
 
         _isInitializing = false;
         _didInit = true;
-
-        ToggleRecording();
     }
 
     private void UpdateGrammar()
@@ -229,6 +227,42 @@ public class VoskSpeechToText : MonoBehaviour
 
         _model = tempModel;
         IsModelLoaded = true;
+
+        // Create the recognizer immediately after loading the model
+        yield return CreateRecognizer();
+    }
+
+    private IEnumerator CreateRecognizer()
+    {
+        VoskRecognizer tempRecognizer = null;
+        Exception createError = null;
+
+        var createTask = Task.Run(() =>
+        {
+            try
+            {
+                UpdateGrammar();
+                tempRecognizer = string.IsNullOrEmpty(_grammar)
+                    ? new VoskRecognizer(_model, 16000.0f)
+                    : new VoskRecognizer(_model, 16000.0f, _grammar);
+
+                tempRecognizer.SetMaxAlternatives(MaxAlternatives);
+            }
+            catch (Exception ex) { createError = ex; }
+        });
+
+        while (!createTask.IsCompleted)
+            yield return null;
+
+        if (createError != null)
+        {
+            Debug.LogError("Failed to create recognizer: " + createError);
+            yield break;
+        }
+
+        _recognizer = tempRecognizer;
+        _recognizerReady = true;
+        Debug.Log("Recognizer ready");
     }
 
     private IEnumerator WaitForMicrophoneInput()
@@ -274,19 +308,11 @@ public class VoskSpeechToText : MonoBehaviour
     // Background worker (no async/await)
     private void ThreadedWork()
     {
-        voskRecognizerCreateMarker.Begin();
         if (!_recognizerReady)
         {
-            UpdateGrammar();
-            _recognizer = string.IsNullOrEmpty(_grammar)
-                ? new VoskRecognizer(_model, 16000.0f)
-                : new VoskRecognizer(_model, 16000.0f, _grammar);
-
-            _recognizer.SetMaxAlternatives(MaxAlternatives);
-            _recognizerReady = true;
-            Debug.Log("Recognizer ready");
+            Debug.LogError("Recognizer not ready!");
+            return;
         }
-        voskRecognizerCreateMarker.End();
 
         voskRecognizerReadMarker.Begin();
         while (_running)

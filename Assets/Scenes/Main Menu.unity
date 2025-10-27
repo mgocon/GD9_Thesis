@@ -179,11 +179,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '- Level 2
-
-'
+  m_text: '- Senior Level'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 73f017e29e51b86489defe963766ed48, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -271,7 +269,7 @@ GameObject:
   - component: {fileID: 242640015}
   - component: {fileID: 242640014}
   m_Layer: 5
-  m_Name: Level 2
+  m_Name: Senior Level
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -350,7 +348,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: Tutorial Scene
+          m_StringArgument: SeniorLevel Scene
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &242640015
@@ -461,8 +459,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: '- About'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
-  m_sharedMaterial: {fileID: 8396501221061304442, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 73f017e29e51b86489defe963766ed48, type: 2}
+  m_sharedMaterial: {fileID: 8986743354575637376, guid: 73f017e29e51b86489defe963766ed48, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -693,8 +691,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: '- Quit'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
-  m_sharedMaterial: {fileID: 8396501221061304442, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 73f017e29e51b86489defe963766ed48, type: 2}
+  m_sharedMaterial: {fileID: 8986743354575637376, guid: 73f017e29e51b86489defe963766ed48, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -827,8 +825,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: '- Tutorial'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
-  m_sharedMaterial: {fileID: 8396501221061304442, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 73f017e29e51b86489defe963766ed48, type: 2}
+  m_sharedMaterial: {fileID: 8986743354575637376, guid: 73f017e29e51b86489defe963766ed48, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1063,8 +1061,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: GAME NAME
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
-  m_sharedMaterial: {fileID: 8396501221061304442, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 47620f7240c98f447bbc52bd64db00f9, type: 2}
+  m_sharedMaterial: {fileID: -2804124009492684869, guid: 47620f7240c98f447bbc52bd64db00f9, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1948,8 +1946,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: '- Choose Level'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
-  m_sharedMaterial: {fileID: 8396501221061304442, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 73f017e29e51b86489defe963766ed48, type: 2}
+  m_sharedMaterial: {fileID: 8986743354575637376, guid: 73f017e29e51b86489defe963766ed48, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2246,7 +2244,7 @@ GameObject:
   - component: {fileID: 1894074612}
   - component: {fileID: 1894074611}
   m_Layer: 5
-  m_Name: Level 1
+  m_Name: Entry Level
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2325,7 +2323,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: Tutorial Scene
+          m_StringArgument: Entry Level
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &1894074612
@@ -2515,9 +2513,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '- Level 1'
+  m_text: '- Entry Level'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: b822e5bbae9436141b8ddd2f3ab54c59, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 73f017e29e51b86489defe963766ed48, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
