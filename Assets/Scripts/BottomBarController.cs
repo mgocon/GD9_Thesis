@@ -11,6 +11,9 @@ public class BottomBarController : MonoBehaviour
     public float slideDistance = 150f; // how far to slide up
     public float slideDuration = 0.25f; // seconds
 
+    [Header("Voice Recognition")]
+    public VoskSpeechToText voskSpeechToText; // assign in inspector
+
     private bool isSpeakImageVisible = false;
     private Coroutine slideCoroutine;
 
@@ -105,6 +108,12 @@ public class BottomBarController : MonoBehaviour
             slideCoroutine = null;
         }
         slideCoroutine = StartCoroutine(SlideSpeakImage(!isSpeakImageVisible));
+
+        // Toggle microphone recording
+        if (voskSpeechToText != null)
+        {
+            voskSpeechToText.ToggleRecording();
+        }
     }
 
     private IEnumerator SlideSpeakImage(bool show)
@@ -135,5 +144,29 @@ public class BottomBarController : MonoBehaviour
 
         // Optionally disable when hidden
         if (!show) speakImage.gameObject.SetActive(false);
+    }
+
+    // Automatically find and assign VoskSpeechToText from the GameObject named "VoskManager"
+    private void Awake()
+    {
+        if (voskSpeechToText == null)
+        {
+            var voskManager = GameObject.Find("VoskManager");
+            if (voskManager != null)
+            {
+                voskSpeechToText = voskManager.GetComponent<VoskSpeechToText>();
+            }
+
+            if (voskSpeechToText == null)
+            {
+                // Fallback: try to find any VoskSpeechToText in the scene
+                voskSpeechToText = FindObjectOfType<VoskSpeechToText>();
+            }
+
+            if (voskSpeechToText == null)
+            {
+                Debug.LogWarning("VoskSpeechToText not found. Please ensure a GameObject named 'VoskManager' with VoskSpeechToText exists in the scene.");
+            }
+        }
     }
 }
