@@ -342,7 +342,7 @@ MonoBehaviour:
   VoiceProcessor: {fileID: 450954871}
   MaxAlternatives: 3
   MaxRecordLength: 5
-  AutoStart: 0
+  AutoStart: 1
   KeyPhrases: []
 --- !u!114 &450954873
 MonoBehaviour:
