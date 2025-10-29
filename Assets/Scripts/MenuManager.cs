@@ -3,17 +3,16 @@ using UnityEngine.SceneManagement;
 
 public class MenuManager : MonoBehaviour
 {
-    public Animator transitionAnimator; // assign in inspector
+    public Animator transitionAnimator;
     private string sceneToLoad;
-
-    public static MenuManager Instance; // Singleton
+    public static MenuManager Instance;
 
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // persist across scenes
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -23,10 +22,6 @@ public class MenuManager : MonoBehaviour
 
     public void ChangeSceneByName(string sceneName)
     {
-        // store requested scene and delegate to GameManager
-        // sceneToLoad = sceneName;
-        // transitionAnimator.SetTrigger("FadeOut");
-        // SceneManager.LoadScene(sceneName);
         transitionAnimator.gameObject.SetActive(true);
         sceneToLoad = sceneName;
         if (GameManager.instance != null)
@@ -35,14 +30,9 @@ public class MenuManager : MonoBehaviour
         }
     }
 
-    public void FadeOut()
-    {
-        transitionAnimator.SetTrigger("FadeOut");
-    }
-    public void FadeIn()
-    {
-        transitionAnimator.SetTrigger("FadeIn");
-    }
+    public void FadeOut() => transitionAnimator.SetTrigger("FadeOut");
+    public void FadeIn() => transitionAnimator.SetTrigger("FadeIn");
+
     public void OnFadeComplete()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -51,22 +41,27 @@ public class MenuManager : MonoBehaviour
 
     public void OnFadeInComplete()
     {
-        transitionAnimator.gameObject.SetActive(false); // disables the Image object
+        transitionAnimator.gameObject.SetActive(false);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Play fade-in animation
         transitionAnimator.SetTrigger("FadeIn");
-        SceneManager.sceneLoaded -= OnSceneLoaded; // remove listener
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     public void QuitGame()
     {
-        Debug.Log("Quitting game...");
+        Debug.Log("🚪 Quitting game...");
+
+        // ✅ Save CSV before quitting
+        if (DataLogger.Instance != null)
+        {
+            DataLogger.Instance.SaveCSV();
+        }
+
         Application.Quit();
 
-        // If testing in editor
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #endif

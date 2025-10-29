@@ -2,45 +2,42 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+
 public class BottomBarController : MonoBehaviour
 {
     public TextMeshProUGUI barText;
     public TextMeshProUGUI personNameText;
+
     [Header("Speak Image Slide")]
-    public RectTransform speakImage; // assign the image's RectTransform in inspector
-    public float slideDistance = 150f; // how far to slide up
-    public float slideDuration = 0.25f; // seconds
+    public RectTransform speakImage;
+    public float slideDistance = 150f;
+    public float slideDuration = 0.25f;
 
     [Header("Voice Recognition")]
-    public VoskSpeechToText voskSpeechToText; // assign in inspector
+    public VoskSpeechToText voskSpeechToText;
 
     private bool isSpeakImageVisible = false;
     private Coroutine slideCoroutine;
-
     private int sentenceIndex = -1;
     private StoryScene currentScene;
     private List<int> playbackOrder;
     private State state = State.COMPLETED;
-    private enum State
-    {
-        PLAYING, COMPLETED
-    }
+
+    private enum State { PLAYING, COMPLETED }
 
     public void PlayScene(StoryScene scene)
     {
         currentScene = scene;
         sentenceIndex = -1;
-        // build playback order
+
         int count = currentScene.sentences != null ? currentScene.sentences.Count : 0;
         int targetCount = (currentScene.sentencesToUse <= 0) ? count : Mathf.Clamp(currentScene.sentencesToUse, 1, count);
 
-        // start with full index list
         List<int> indices = new List<int>(count);
         for (int i = 0; i < count; i++) indices.Add(i);
 
         if (currentScene != null && currentScene.randomizeSentences && count > 1)
         {
-            // Fisher-Yates shuffle on indices
             for (int i = count - 1; i > 0; i--)
             {
                 int j = Random.Range(0, i + 1);
@@ -48,14 +45,13 @@ public class BottomBarController : MonoBehaviour
                 indices[i] = indices[j];
                 indices[j] = tmp;
             }
-            // take the first targetCount shuffled indices
             playbackOrder = indices.GetRange(0, Mathf.Min(targetCount, indices.Count));
         }
         else
         {
-            // take the first targetCount indices in order
             playbackOrder = indices.GetRange(0, Mathf.Min(targetCount, indices.Count));
         }
+
         PlayNextSentence();
     }
 
@@ -63,21 +59,24 @@ public class BottomBarController : MonoBehaviour
     {
         sentenceIndex++;
         if (playbackOrder == null || sentenceIndex < 0 || sentenceIndex >= playbackOrder.Count) return;
+
         int idx = playbackOrder[sentenceIndex];
-        StartCoroutine(TypeText(currentScene.sentences[idx].text));
+        string sentenceText = currentScene.sentences[idx].text;
+
+        StartCoroutine(TypeText(sentenceText));
         personNameText.text = currentScene.sentences[idx].speaker.speakerName;
         personNameText.color = currentScene.sentences[idx].speaker.textColor;
+
+        // ✅ Log this sentence to CSV
+        if (DataLogger.Instance != null)
+        {
+            DataLogger.Instance.LogSentence(sentenceText, idx);
+        }
     }
 
-    public bool IsCompleted()
-    {
-        return state == State.COMPLETED;
-    }
+    public bool IsCompleted() => state == State.COMPLETED;
 
-    public bool IsLastSentence()
-    {
-        return playbackOrder != null && (sentenceIndex + 1 == playbackOrder.Count);
-    }
+    public bool IsLastSentence() => playbackOrder != null && (sentenceIndex + 1 == playbackOrder.Count);
 
     private IEnumerator TypeText(string text)
     {
@@ -89,7 +88,7 @@ public class BottomBarController : MonoBehaviour
         {
             barText.text += text[wordIndex];
             yield return new WaitForSeconds(0.05f);
-            if(++wordIndex == text.Length)
+            if (++wordIndex == text.Length)
             {
                 state = State.COMPLETED;
                 break;
@@ -97,11 +96,9 @@ public class BottomBarController : MonoBehaviour
         }
     }
 
-    // Called by the Speak button (wire this method to the button OnClick)
     public void OnSpeakButtonPressed()
     {
         if (speakImage == null) return;
-        // Stop only the slide coroutine so we don't interrupt the typewriter coroutine
         if (slideCoroutine != null)
         {
             StopCoroutine(slideCoroutine);
@@ -109,7 +106,6 @@ public class BottomBarController : MonoBehaviour
         }
         slideCoroutine = StartCoroutine(SlideSpeakImage(!isSpeakImageVisible));
 
-        // Toggle microphone recording
         if (voskSpeechToText != null)
         {
             voskSpeechToText.ToggleRecording();
@@ -119,34 +115,24 @@ public class BottomBarController : MonoBehaviour
     private IEnumerator SlideSpeakImage(bool show)
     {
         isSpeakImageVisible = show;
-
         Vector2 start = speakImage.anchoredPosition;
         Vector2 end = start + (show ? Vector2.up * slideDistance : Vector2.down * slideDistance);
         float elapsed = 0f;
-
-        // Optionally enable the object when showing
         if (show) speakImage.gameObject.SetActive(true);
 
         while (elapsed < slideDuration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / slideDuration);
-            // smooth step for nicer movement
-            t = Mathf.SmoothStep(0f, 1f, t);
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / slideDuration);
             speakImage.anchoredPosition = Vector2.Lerp(start, end, t);
             yield return null;
         }
 
         speakImage.anchoredPosition = end;
-
-    // clear reference so it can be restarted next time
-    slideCoroutine = null;
-
-        // Optionally disable when hidden
+        slideCoroutine = null;
         if (!show) speakImage.gameObject.SetActive(false);
     }
 
-    // Automatically find and assign VoskSpeechToText from the GameObject named "VoskManager"
     private void Awake()
     {
         if (voskSpeechToText == null)
@@ -156,17 +142,18 @@ public class BottomBarController : MonoBehaviour
             {
                 voskSpeechToText = voskManager.GetComponent<VoskSpeechToText>();
             }
-
             if (voskSpeechToText == null)
             {
-                // Fallback: try to find any VoskSpeechToText in the scene
                 voskSpeechToText = FindObjectOfType<VoskSpeechToText>();
             }
-
             if (voskSpeechToText == null)
             {
-                Debug.LogWarning("VoskSpeechToText not found. Please ensure a GameObject named 'VoskManager' with VoskSpeechToText exists in the scene.");
+                Debug.LogWarning("VoskSpeechToText not found in scene.");
             }
         }
     }
+
+    // ✅ Optional UI helper methods for buttons
+    public void OnAlgorithmButtonClicked_DQN() => DataLogger.Instance?.LogAlgorithmChoice("DQN");
+    public void OnAlgorithmButtonClicked_PPO() => DataLogger.Instance?.LogAlgorithmChoice("PPO");
 }
