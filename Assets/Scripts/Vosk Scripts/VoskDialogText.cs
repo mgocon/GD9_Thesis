@@ -6,7 +6,6 @@ public class VoskDialogText : MonoBehaviour
 {
     public VoskSpeechToText VoskSpeechToText;  // Auto-linked to persistent one
     public TextMeshProUGUI dialogueBox;        // Dialog box for displaying text
-    public TextMeshProUGUI speakerNameText;    // Optional: Text field for speaker name
     public float typingSpeed = 0.05f;          // Speed of text appearing
     
     private string currentText = "";
@@ -29,11 +28,9 @@ public class VoskDialogText : MonoBehaviour
             Debug.LogWarning("No VoskSpeechToText found. Did you place VoskManager in your persistent scene?");
         }
 
-        // Initialize text fields
+        // Initialize text field
         if (dialogueBox != null)
             dialogueBox.text = "";
-        if (speakerNameText != null)
-            speakerNameText.text = "Player";
     }
 
     void OnDestroy()
@@ -55,18 +52,14 @@ public class VoskDialogText : MonoBehaviour
             if (!string.IsNullOrEmpty(phrase.Text))
             {
                 // Display the recognized speech in the dialogue box
-                DisplayDialogue("Player", phrase.Text);
+                DisplayDialogue(phrase.Text);
                 return;
             }
         }
     }
 
-    public void DisplayDialogue(string speaker, string text)
+    public void DisplayDialogue(string text)
     {
-        // Update speaker name if available
-        if (speakerNameText != null)
-            speakerNameText.text = speaker;
-
         // Stop any existing typing coroutine
         if (isTyping)
         {
