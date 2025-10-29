@@ -104,4 +104,22 @@ public class VoskDialogText : MonoBehaviour
             isTyping = false;
         }
     }
+
+    // Clear or reset the dialogue text (stop typing and empty fields)
+    public void ClearDialogue()
+    {
+        if (isTyping)
+        {
+            StopAllCoroutines();
+            isTyping = false;
+        }
+
+        currentText = "";
+
+        if (dialogueBox != null)
+            dialogueBox.text = "";
+
+        if (speakerNameText != null)
+            speakerNameText.text = "Player";
+    }
 }
