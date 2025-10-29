@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameController : MonoBehaviour
 {
@@ -12,11 +13,17 @@ public class GameController : MonoBehaviour
     {
         bottomBar.PlayScene(currentScene);
         backgroundController.SetImage(currentScene.background);
+
+        // ✅ Set current level in DataLogger
+        if (DataLogger.Instance != null)
+        {
+            DataLogger.Instance.SetCurrentLevel(SceneManager.GetActiveScene().name);
+        }
     }
 
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             if (bottomBar.IsCompleted())
             {
