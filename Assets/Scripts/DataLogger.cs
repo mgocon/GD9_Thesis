@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class DataLogger : MonoBehaviour
 {
@@ -10,10 +11,15 @@ public class DataLogger : MonoBehaviour
 
     private string fileName = "InterviewResults.csv";
     private string fullPath;
+
+    // --- Runtime state ---
     private string currentLevelName = "";
     private string currentAlgorithm = "";
     private string currentQuestion = "";
     private int currentSentenceIndex = 0;
+
+    // ✅ Keep memory of the most recent "real" level
+    private string lastNonPersistentLevel = "";
 
     private void Awake()
     {
@@ -22,6 +28,9 @@ public class DataLogger : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             InitFile();
+
+            // Listen to scene load events
+            SceneManager.sceneLoaded += OnAnySceneLoaded;
         }
         else
         {
@@ -55,39 +64,91 @@ public class DataLogger : MonoBehaviour
         }
     }
 
-    // --- SETTERS ---
+    // --- AUTO-DETECT SCENE CHANGE ---
+    private void OnAnySceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        int index = scene.buildIndex;
+        string levelLabel = GetLevelNameFromIndex(index);
+
+        // Don't overwrite with Persistent Scene — keep last gameplay scene
+        if (index != 0)
+        {
+            currentLevelName = levelLabel;
+            lastNonPersistentLevel = levelLabel;
+        }
+
+        Debug.Log($"📘 Scene loaded '{scene.name}' (index {index}) → Level set as {currentLevelName}");
+    }
+
+    // --- SCENE INDEX TO FRIENDLY NAME ---
+    private string GetLevelNameFromIndex(int index)
+    {
+        return index switch
+        {
+            1 => "Main Menu",
+            2 => "Tutorial Level",
+            3 => "Entry Level",
+            4 => "Senior Level",
+            0 => "Persistent Scene",
+            _ => "Unknown Scene"
+        };
+    }
+
+    // --- MANUAL OVERRIDE (GameController can call this) ---
     public void SetCurrentLevel(string levelName)
     {
         currentLevelName = levelName ?? "";
-        Debug.Log($"📘 Level set: {currentLevelName}");
+        if (!string.IsNullOrEmpty(levelName) && levelName != "Persistent Scene")
+            lastNonPersistentLevel = levelName;
+
+        Debug.Log($"📘 Level manually set: {currentLevelName}");
     }
 
+    // --- ALGORITHM CHOICE ---
     public void LogAlgorithmChoice(string algorithm)
     {
         currentAlgorithm = algorithm ?? "";
-        AppendCsvRow(DateTime.Now.ToString("s"), currentLevelName, currentAlgorithm,
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+
+        // ✅ Use last known non-persistent level if current is Persistent
+        string effectiveLevel = (currentLevelName == "Persistent Scene" || string.IsNullOrEmpty(currentLevelName))
+            ? lastNonPersistentLevel
+            : currentLevelName;
+
+        AppendCsvRow(DateTime.Now.ToString("s"), effectiveLevel, currentAlgorithm,
+            SceneManager.GetActiveScene().name,
             "<ALGORITHM_CHOSEN>", "", -1);
-        Debug.Log($"🧠 Algorithm chosen: {currentAlgorithm}");
+
+        Debug.Log($"🧠 Algorithm chosen: {currentAlgorithm} at level {effectiveLevel}");
     }
 
-    // Called when showing a new question or dialogue
+    // --- QUESTION/DIALOGUE LOGGING ---
     public void LogSentence(string question, int sentenceIndex)
     {
         currentQuestion = question ?? "";
         currentSentenceIndex = sentenceIndex;
+
         string timestamp = DateTime.Now.ToString("s");
-        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        AppendCsvRow(timestamp, currentLevelName, currentAlgorithm, sceneName, question, "", sentenceIndex);
+        string sceneName = SceneManager.GetActiveScene().name;
+
+        string effectiveLevel = (currentLevelName == "Persistent Scene" || string.IsNullOrEmpty(currentLevelName))
+            ? lastNonPersistentLevel
+            : currentLevelName;
+
+        AppendCsvRow(timestamp, effectiveLevel, currentAlgorithm, sceneName, question, "", sentenceIndex);
         Debug.Log($"🗒 Logged question: {question}");
     }
 
-    // Called when the player gives a spoken answer (from Vosk)
+    // --- PLAYER ANSWER LOGGING ---
     public void LogAnswer(string playerAnswer)
     {
         string timestamp = DateTime.Now.ToString("s");
-        string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-        AppendCsvRow(timestamp, currentLevelName, currentAlgorithm, sceneName, currentQuestion, playerAnswer, currentSentenceIndex);
+        string sceneName = SceneManager.GetActiveScene().name;
+
+        string effectiveLevel = (currentLevelName == "Persistent Scene" || string.IsNullOrEmpty(currentLevelName))
+            ? lastNonPersistentLevel
+            : currentLevelName;
+
+        AppendCsvRow(timestamp, effectiveLevel, currentAlgorithm, sceneName, currentQuestion, playerAnswer, currentSentenceIndex);
         Debug.Log($"🎙 Logged answer: {playerAnswer}");
     }
 
