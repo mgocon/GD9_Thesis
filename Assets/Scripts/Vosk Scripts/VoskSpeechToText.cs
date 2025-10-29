@@ -289,10 +289,45 @@ public class VoskSpeechToText : MonoBehaviour
         }
     }
 
+    // ✅ UPDATED VERSION (with CSV logging)
     void Update()
     {
         while (_threadedResultQueue.TryDequeue(out string voiceResult))
+        {
+            // 🔍 Debug raw JSON output from Vosk
+            Debug.Log($"🔍 Raw Vosk JSON: {voiceResult}");
+
+            // Extract recognized text
+            string recognizedText = "";
+            try
+            {
+                int textIndex = voiceResult.IndexOf("\"text\"");
+                if (textIndex >= 0)
+                {
+                    int start = voiceResult.IndexOf(":", textIndex) + 1;
+                    int end = voiceResult.IndexOf("}", start);
+                    recognizedText = voiceResult.Substring(start, end - start)
+                                                .Replace("\"", "")
+                                                .Replace(":", "")
+                                                .Trim();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"⚠️ Failed to parse Vosk text: {ex.Message}");
+            }
+
+            // ✅ Log recognized text into CSV
+            if (!string.IsNullOrEmpty(recognizedText))
+            {
+                Debug.Log($"🗣 Recognized: {recognizedText}");
+                if (DataLogger.Instance != null)
+                    DataLogger.Instance.LogAnswer(recognizedText);
+            }
+
+            // Continue to notify UI handlers
             OnTranscriptionResult?.Invoke(voiceResult);
+        }
     }
 
     private void VoiceProcessorOnOnFrameCaptured(short[] samples)
