@@ -3,18 +3,24 @@ using UnityEngine.SceneManagement;
 
 public class MenuManager : MonoBehaviour
 {
-    public Animator transitionAnimator;
     private string sceneToLoad;
     public static MenuManager Instance;
 
     void Awake()
     {
+        int managerIndex = (int)SceneIndexes.MANAGER;
+
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            // Only make this MenuManager persistent if it lives in the persistent manager scene.
+            // If it's placed in the Main Menu scene, keep it scene-local so button OnClick references remain valid.
+            if (gameObject.scene.buildIndex == managerIndex)
+            {
+                DontDestroyOnLoad(gameObject);
+            }
         }
-        else
+        else if (Instance != this)
         {
             Destroy(gameObject);
         }
@@ -22,32 +28,11 @@ public class MenuManager : MonoBehaviour
 
     public void ChangeSceneByName(string sceneName)
     {
-        transitionAnimator.gameObject.SetActive(true);
         sceneToLoad = sceneName;
         if (GameManager.instance != null)
         {
             GameManager.instance.LoadGameByName(sceneName);
         }
-    }
-
-    public void FadeOut() => transitionAnimator.SetTrigger("FadeOut");
-    public void FadeIn() => transitionAnimator.SetTrigger("FadeIn");
-
-    public void OnFadeComplete()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        SceneManager.LoadScene(sceneToLoad);
-    }
-
-    public void OnFadeInComplete()
-    {
-        transitionAnimator.gameObject.SetActive(false);
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        transitionAnimator.SetTrigger("FadeIn");
-        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     public void QuitGame()

@@ -43,6 +43,19 @@ public class GameController : MonoBehaviour
 
         if (bottomBar.IsLastSentence())
         {
+            // If there is no next scene, show the end-of-level popup
+            if (currentScene.nextScene == null)
+            {
+                if (bottomBar != null)
+                {
+                    bottomBar.ShowEndPopup();
+                }
+                var vosk = FindObjectOfType<VoskDialogText>();
+                if (vosk != null) vosk.ClearDialogue();
+                return;
+            }
+
+            // Otherwise proceed to the next scene
             currentScene = currentScene.nextScene;
             bottomBar.PlayScene(currentScene);
             backgroundController.SwitchImage(currentScene.background);
@@ -55,8 +68,8 @@ public class GameController : MonoBehaviour
                 bottomBar.SetDoneButtonInteractable(true);
             }
             // Clear any Vosk dialog text from the previous question
-            var vosk = FindObjectOfType<VoskDialogText>();
-            if (vosk != null) vosk.ClearDialogue();
+            var vosk2 = FindObjectOfType<VoskDialogText>();
+            if (vosk2 != null) vosk2.ClearDialogue();
         }
         else
         {

@@ -389,12 +389,13 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 242640012}
   m_CullTransparentMesh: 1
---- !u!114 &249454243 stripped
+--- !u!114 &249454243
 MonoBehaviour:
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 4168303521975943745, guid: b863d13692e295346bcfda49255d6721, type: 3}
   m_PrefabInstance: {fileID: 1321700033669395342}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 446301056}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fc90cb28d87ca0d4282a3369802d2fdf, type: 3}
@@ -534,6 +535,38 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 283276906}
   m_CullTransparentMesh: 1
+--- !u!1 &446301056
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 7080974361201622139, guid: b863d13692e295346bcfda49255d6721, type: 3}
+  m_PrefabInstance: {fileID: 1321700033669395342}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 446301057}
+  - component: {fileID: 249454243}
+  m_Layer: 0
+  m_Name: Scene Transition
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &446301057
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 1806615544047047660, guid: b863d13692e295346bcfda49255d6721, type: 3}
+  m_PrefabInstance: {fileID: 1321700033669395342}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 446301056}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.947978, y: 1.1275125, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &501989841
 GameObject:
   m_ObjectHideFlags: 0
@@ -2772,20 +2805,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3970229585979380854, guid: b863d13692e295346bcfda49255d6721, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 5
-      objectReference: {fileID: 0}
     - target: {fileID: 7080974361201622139, guid: b863d13692e295346bcfda49255d6721, type: 3}
       propertyPath: m_Name
       value: Scene Transition
       objectReference: {fileID: 0}
-    - target: {fileID: 7936803156744374013, guid: b863d13692e295346bcfda49255d6721, type: 3}
-      propertyPath: m_SortingOrder
-      value: 999
+    - target: {fileID: 7080974361201622139, guid: b863d13692e295346bcfda49255d6721, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 3709083907643032537, guid: b863d13692e295346bcfda49255d6721, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b863d13692e295346bcfda49255d6721, type: 3}

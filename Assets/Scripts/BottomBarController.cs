@@ -31,6 +31,15 @@ public class BottomBarController : MonoBehaviour
     public float boxesSlideDistance = 300f;
     public float boxesSlideDuration = 0.25f;
 
+    [Header("End Popup")]
+    public RectTransform endBox;
+    public Button endBoxButton;
+    public float endBoxDistance = 200f;
+    public float endBoxDuration = 0.25f;
+    private Coroutine endBoxCoroutine;
+    [Tooltip("Scene name to return to when player presses the end-popup button. GameManager will be asked to load this by name.")]
+    public string mainMenuSceneName = "MAIN_MENU";
+
     private bool areBoxesVisible = false;
     private Coroutine leftBoxCoroutine;
     private Coroutine rightBoxCoroutine;
@@ -226,6 +235,54 @@ public class BottomBarController : MonoBehaviour
             doneButton.interactable = false;
     }
 
+    // Show the end-of-level popup (call when player finished all questions and there is no next scene)
+    public void ShowEndPopup()
+    {
+        if (endBox == null) return;
+
+        if (endBoxCoroutine != null)
+        {
+            StopCoroutine(endBoxCoroutine);
+            endBoxCoroutine = null;
+        }
+
+        // Use SlideBox with upward movement for the end box
+        endBoxCoroutine = StartCoroutine(SlideBox(endBox, true, Vector2.up, endBoxDistance, endBoxDuration, () => endBoxCoroutine = null));
+
+        // Ensure the end button is interactable
+        if (endBoxButton != null)
+            endBoxButton.interactable = true;
+    }
+
+    public void HideEndPopup()
+    {
+        if (endBox == null) return;
+
+        if (endBoxCoroutine != null)
+        {
+            StopCoroutine(endBoxCoroutine);
+            endBoxCoroutine = null;
+        }
+
+        endBoxCoroutine = StartCoroutine(SlideBox(endBox, false, Vector2.up, endBoxDistance, endBoxDuration, () => endBoxCoroutine = null));
+    }
+
+    // Called by the end-popup button. Ask GameManager to load the main menu by name.
+    public void OnEndPopupBackToMainMenuPressed()
+    {
+        // Optionally hide popup immediately
+        HideEndPopup();
+
+        if (GameManager.instance != null)
+        {
+            GameManager.instance.LoadGameByName(mainMenuSceneName);
+        }
+        else
+        {
+            Debug.LogWarning("GameManager.instance not found. Cannot return to main menu.");
+        }
+    }
+
     private IEnumerator SlideBox(RectTransform box, bool show, Vector2 direction, float distance, float duration, System.Action onComplete)
     {
         if (box == null)
@@ -335,5 +392,5 @@ public class BottomBarController : MonoBehaviour
     {
         if (doneButton != null)
             doneButton.interactable = enabled;
-    }
+         }
 }

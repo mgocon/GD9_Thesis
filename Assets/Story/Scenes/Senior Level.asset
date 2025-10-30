@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba398dc87565ae34685c80a74190cc0c, type: 3}
+  m_Name: Senior Level
+  m_EditorClassIdentifier: 
+  sentences:
+  - text: Do you prefer to communicate using email, over the phone or in-person?
+      Why?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: What are some skills you still want to learn?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How do you lead and motivate others?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How do you handle work/life balance?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Describe your leadership style.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How would you handle an underperforming employee?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: "How do you evaluate your team members\u2019 performance?"
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How do you deal with change and uncertainty?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How do you handle conflict and feedback?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: What attributes does your ideal manager possess?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  randomizeSentences: 1
+  sentencesToUse: 2
+  background: {fileID: 21300000, guid: 33fb69851ac2bd14286543889ec6b54d, type: 3}
+  nextScene: {fileID: 0}
