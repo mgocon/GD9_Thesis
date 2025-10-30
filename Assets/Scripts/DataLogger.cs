@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -20,6 +22,43 @@ public class DataLogger : MonoBehaviour
 
     // ✅ Keep memory of the most recent "real" level
     private string lastNonPersistentLevel = "";
+
+    // ✅ Cache all CSV rows in memory for fast lookup and updates
+    private List<CsvRow> csvData = new List<CsvRow>();
+    private readonly object dataLock = new object();
+
+    private class CsvRow
+    {
+        public string Timestamp;
+        public string LevelName;
+        public string Algorithm;
+        public string SceneName;
+        public string Question;
+        public string PlayerAnswer;
+        public int SentenceIndex;
+
+        public string ToCsvLine()
+        {
+            string Escape(string s)
+            {
+                if (s == null) return "\"\"";
+                s = s.Replace("\"", "\"\"");
+                return $"\"{s}\"";
+            }
+
+            string si = SentenceIndex >= 0 ? SentenceIndex.ToString() : "";
+            return string.Join(",", new string[]
+            {
+                Escape(Timestamp),
+                Escape(LevelName),
+                Escape(Algorithm),
+                Escape(SceneName),
+                Escape(Question),
+                Escape(PlayerAnswer),
+                Escape(si)
+            });
+        }
+    }
 
     private void Awake()
     {
@@ -47,21 +86,105 @@ public class DataLogger : MonoBehaviour
         {
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? Application.persistentDataPath);
 
-            if (!File.Exists(fullPath))
-            {
-                string header = "Timestamp,Level Name,Algorithm Chosen,Scene Name,Question/Dialogue,Player Answer,Sentence Index";
-                File.WriteAllText(fullPath, header + Environment.NewLine, Encoding.UTF8);
-                Debug.Log($"📄 DataLogger: Created CSV at {fullPath}");
-            }
-            else
-            {
-                Debug.Log($"📄 DataLogger: Using existing CSV at {fullPath}");
-            }
+            // ✅ Always reset the CSV file when game starts
+            string header = "Timestamp,Level Name,Algorithm Chosen,Scene Name,Question/Dialogue,Player Answer,Sentence Index";
+            File.WriteAllText(fullPath, header + Environment.NewLine, Encoding.UTF8);
+            
+            // ✅ Clear in-memory data
+            csvData.Clear();
+            
+            Debug.Log($"📄 DataLogger: Reset CSV file at {fullPath}");
         }
         catch (Exception ex)
         {
             Debug.LogError("DataLogger: Failed to initialize file: " + ex.Message);
         }
+    }
+
+    // ✅ Load existing CSV data into memory (keeping this for potential future use)
+    private void LoadExistingData()
+    {
+        lock (dataLock)
+        {
+            csvData.Clear();
+            try
+            {
+                var lines = File.ReadAllLines(fullPath, Encoding.UTF8);
+                for (int i = 1; i < lines.Length; i++) // Skip header
+                {
+                    var row = ParseCsvLine(lines[i]);
+                    if (row != null)
+                        csvData.Add(row);
+                }
+                Debug.Log($"📥 Loaded {csvData.Count} existing rows from CSV");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to load existing CSV data: {ex.Message}");
+            }
+        }
+    }
+
+    // ✅ Parse a CSV line into a CsvRow object
+    private CsvRow ParseCsvLine(string line)
+    {
+        try
+        {
+            var values = SplitCsvLine(line);
+            if (values.Length < 7) return null;
+
+            return new CsvRow
+            {
+                Timestamp = values[0],
+                LevelName = values[1],
+                Algorithm = values[2],
+                SceneName = values[3],
+                Question = values[4],
+                PlayerAnswer = values[5],
+                SentenceIndex = int.TryParse(values[6], out int idx) ? idx : -1
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // ✅ Split CSV line respecting quoted fields
+    private string[] SplitCsvLine(string line)
+    {
+        var result = new List<string>();
+        var current = new StringBuilder();
+        bool inQuotes = false;
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    current.Append('"');
+                    i++; // skip next quote
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+            }
+            else if (c == ',' && !inQuotes)
+            {
+                result.Add(current.ToString());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(c);
+            }
+        }
+        result.Add(current.ToString());
+        return result.ToArray();
     }
 
     // --- AUTO-DETECT SCENE CHANGE ---
@@ -70,7 +193,6 @@ public class DataLogger : MonoBehaviour
         int index = scene.buildIndex;
         string levelLabel = GetLevelNameFromIndex(index);
 
-        // Don't overwrite with Persistent Scene — keep last gameplay scene
         if (index != 0)
         {
             currentLevelName = levelLabel;
@@ -94,7 +216,7 @@ public class DataLogger : MonoBehaviour
         };
     }
 
-    // --- MANUAL OVERRIDE (GameController can call this) ---
+    // --- MANUAL OVERRIDE ---
     public void SetCurrentLevel(string levelName)
     {
         currentLevelName = levelName ?? "";
@@ -109,14 +231,42 @@ public class DataLogger : MonoBehaviour
     {
         currentAlgorithm = algorithm ?? "";
 
-        // ✅ Use last known non-persistent level if current is Persistent
         string effectiveLevel = (currentLevelName == "Persistent Scene" || string.IsNullOrEmpty(currentLevelName))
             ? lastNonPersistentLevel
             : currentLevelName;
 
-        AppendCsvRow(DateTime.Now.ToString("s"), effectiveLevel, currentAlgorithm,
-            SceneManager.GetActiveScene().name,
-            "<ALGORITHM_CHOSEN>", "", -1);
+        // ✅ Find existing row for current question and update algorithm
+        lock (dataLock)
+        {
+            var existingRow = csvData.FirstOrDefault(r => 
+                r.Question == currentQuestion && 
+                r.SentenceIndex == currentSentenceIndex &&
+                r.LevelName == effectiveLevel);
+
+            if (existingRow != null)
+            {
+                existingRow.Algorithm = currentAlgorithm;
+                existingRow.Timestamp = DateTime.Now.ToString("s");
+                Debug.Log($"🔄 Updated algorithm for existing question: {currentQuestion}");
+            }
+            else
+            {
+                // Create new row if question doesn't exist yet
+                var newRow = new CsvRow
+                {
+                    Timestamp = DateTime.Now.ToString("s"),
+                    LevelName = effectiveLevel,
+                    Algorithm = currentAlgorithm,
+                    SceneName = SceneManager.GetActiveScene().name,
+                    Question = currentQuestion,
+                    PlayerAnswer = "",
+                    SentenceIndex = currentSentenceIndex
+                };
+                csvData.Add(newRow);
+            }
+
+            WriteAllDataToFile();
+        }
 
         Debug.Log($"🧠 Algorithm chosen: {currentAlgorithm} at level {effectiveLevel}");
     }
@@ -134,8 +284,37 @@ public class DataLogger : MonoBehaviour
             ? lastNonPersistentLevel
             : currentLevelName;
 
-        AppendCsvRow(timestamp, effectiveLevel, currentAlgorithm, sceneName, question, "", sentenceIndex);
-        Debug.Log($"🗒 Logged question: {question}");
+        lock (dataLock)
+        {
+            // ✅ Check if this exact question already exists
+            var existingRow = csvData.FirstOrDefault(r => 
+                r.Question == question && 
+                r.SentenceIndex == sentenceIndex &&
+                r.LevelName == effectiveLevel);
+
+            if (existingRow != null)
+            {
+                existingRow.Timestamp = timestamp;
+                Debug.Log($"🔄 Question already exists, updated timestamp: {question}");
+            }
+            else
+            {
+                // Add new question
+                csvData.Add(new CsvRow
+                {
+                    Timestamp = timestamp,
+                    LevelName = effectiveLevel,
+                    Algorithm = currentAlgorithm,
+                    SceneName = sceneName,
+                    Question = question,
+                    PlayerAnswer = "",
+                    SentenceIndex = sentenceIndex
+                });
+                Debug.Log($"➕ Added new question: {question}");
+            }
+
+            WriteAllDataToFile();
+        }
     }
 
     // --- PLAYER ANSWER LOGGING ---
@@ -148,45 +327,63 @@ public class DataLogger : MonoBehaviour
             ? lastNonPersistentLevel
             : currentLevelName;
 
-        AppendCsvRow(timestamp, effectiveLevel, currentAlgorithm, sceneName, currentQuestion, playerAnswer, currentSentenceIndex);
+        lock (dataLock)
+        {
+            // ✅ Find and update existing row
+            var existingRow = csvData.FirstOrDefault(r => 
+                r.Question == currentQuestion && 
+                r.SentenceIndex == currentSentenceIndex &&
+                r.LevelName == effectiveLevel);
+
+            if (existingRow != null)
+            {
+                existingRow.PlayerAnswer = playerAnswer;
+                existingRow.Timestamp = timestamp;
+                Debug.Log($"🔄 Updated answer for question: {currentQuestion}");
+            }
+            else
+            {
+                // Create new row if question doesn't exist
+                csvData.Add(new CsvRow
+                {
+                    Timestamp = timestamp,
+                    LevelName = effectiveLevel,
+                    Algorithm = currentAlgorithm,
+                    SceneName = sceneName,
+                    Question = currentQuestion,
+                    PlayerAnswer = playerAnswer,
+                    SentenceIndex = currentSentenceIndex
+                });
+                Debug.Log($"➕ Added new row with answer: {playerAnswer}");
+            }
+
+            WriteAllDataToFile();
+        }
+
         Debug.Log($"🎙 Logged answer: {playerAnswer}");
     }
 
-    // --- SAFE FILE APPENDING ---
-    private void AppendCsvRow(string timestamp, string levelName, string algorithm, string sceneName,
-                              string question, string playerAnswer, int sentenceIndex)
+    // ✅ Write all data to file (replaces entire file)
+    private void WriteAllDataToFile()
     {
         try
         {
-            string Escape(string s)
-            {
-                if (s == null) return "\"\"";
-                s = s.Replace("\"", "\"\"");
-                return $"\"{s}\"";
-            }
-
-            string si = sentenceIndex >= 0 ? sentenceIndex.ToString() : "";
-            string line = string.Join(",", new string[]
-            {
-                Escape(timestamp),
-                Escape(levelName),
-                Escape(algorithm),
-                Escape(sceneName),
-                Escape(question),
-                Escape(playerAnswer),
-                Escape(si)
-            });
-
             bool success = false;
             int retries = 0;
+
             while (!success && retries < 5)
             {
                 try
                 {
-                    using (var writer = new StreamWriter(fullPath, true, Encoding.UTF8))
+                    var sb = new StringBuilder();
+                    sb.AppendLine("Timestamp,Level Name,Algorithm Chosen,Scene Name,Question/Dialogue,Player Answer,Sentence Index");
+
+                    foreach (var row in csvData)
                     {
-                        writer.WriteLine(line);
+                        sb.AppendLine(row.ToCsvLine());
                     }
+
+                    File.WriteAllText(fullPath, sb.ToString(), Encoding.UTF8);
                     success = true;
                 }
                 catch (IOException ex)
@@ -202,19 +399,20 @@ public class DataLogger : MonoBehaviour
             }
 
             if (!success)
-                Debug.LogError("❌ Could not append to CSV after multiple retries.");
+                Debug.LogError("❌ Could not write to CSV after multiple retries.");
         }
         catch (Exception ex)
         {
-            Debug.LogError("DataLogger: Could not append row: " + ex.Message);
+            Debug.LogError("DataLogger: Could not write file: " + ex.Message);
         }
     }
 
     public void SaveCSV()
     {
-        if (!File.Exists(fullPath))
-            InitFile();
-
+        lock (dataLock)
+        {
+            WriteAllDataToFile();
+        }
         Debug.Log($"💾 File saved at {fullPath}");
     }
 

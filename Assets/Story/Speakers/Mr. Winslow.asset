@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: Mr. Winslow
   m_EditorClassIdentifier: 
   speakerName: Mr. Winslow
-  textColor: {r: 0, g: 1, b: 0.10007763, a: 1}
+  textColor: {r: 0.6313726, g: 0.5529412, b: 0.43921572, a: 1}
