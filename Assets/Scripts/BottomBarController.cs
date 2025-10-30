@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class BottomBarController : MonoBehaviour
 {
@@ -18,6 +19,21 @@ public class BottomBarController : MonoBehaviour
 
     private bool isSpeakImageVisible = false;
     private Coroutine slideCoroutine;
+    [Header("Speak Button")]
+    public Button speakButton;
+    private bool isRecording = false;
+    [Header("Done Button")]
+    public Button doneButton;
+    
+    [Header("Popup Boxes")]
+    public RectTransform leftBox;
+    public RectTransform rightBox;
+    public float boxesSlideDistance = 300f;
+    public float boxesSlideDuration = 0.25f;
+
+    private bool areBoxesVisible = false;
+    private Coroutine leftBoxCoroutine;
+    private Coroutine rightBoxCoroutine;
     private int sentenceIndex = -1;
     private StoryScene currentScene;
     private List<int> playbackOrder;
@@ -105,11 +121,15 @@ public class BottomBarController : MonoBehaviour
             slideCoroutine = null;
         }
         slideCoroutine = StartCoroutine(SlideSpeakImage(!isSpeakImageVisible));
-
         if (voskSpeechToText != null)
         {
             voskSpeechToText.ToggleRecording();
+            isRecording = !isRecording;
         }
+
+        // disable speak button after pressing once to avoid multiple toggles
+        if (speakButton != null)
+            speakButton.interactable = false;
     }
 
     private IEnumerator SlideSpeakImage(bool show)
@@ -133,6 +153,107 @@ public class BottomBarController : MonoBehaviour
         if (!show) speakImage.gameObject.SetActive(false);
     }
 
+    // Toggle both popup boxes (left from left, right from right)
+    public void OnPopupBoxesPressed()
+    {
+        areBoxesVisible = !areBoxesVisible;
+
+        // Left box: slides horizontally to the right when showing
+        if (leftBox != null)
+        {
+            if (leftBoxCoroutine != null)
+            {
+                StopCoroutine(leftBoxCoroutine);
+                leftBoxCoroutine = null;
+            }
+            leftBoxCoroutine = StartCoroutine(SlideBox(leftBox, areBoxesVisible, Vector2.right, boxesSlideDistance, boxesSlideDuration, () => leftBoxCoroutine = null));
+        }
+
+        // Right box: slides horizontally to the left when showing
+        if (rightBox != null)
+        {
+            if (rightBoxCoroutine != null)
+            {
+                StopCoroutine(rightBoxCoroutine);
+                rightBoxCoroutine = null;
+            }
+            rightBoxCoroutine = StartCoroutine(SlideBox(rightBox, areBoxesVisible, Vector2.left, boxesSlideDistance, boxesSlideDuration, () => rightBoxCoroutine = null));
+        }
+    }
+
+    // New Done button: toggles popup boxes and ensures Vosk recording is stopped
+    public void OnDoneButtonPressed()
+    {
+        // If Vosk dialog text is empty, do not allow Done to proceed
+        var voskDialog = FindObjectOfType<VoskDialogText>();
+        if (voskDialog != null && (voskDialog.dialogueBox == null || string.IsNullOrWhiteSpace(voskDialog.dialogueBox.text)))
+        {
+            Debug.LogWarning("Done is disabled until there is recognized speech in the dialog.");
+            return;
+        }
+        // Toggle boxes same as OnPopupBoxesPressed
+        areBoxesVisible = !areBoxesVisible;
+
+        if (leftBox != null)
+        {
+            if (leftBoxCoroutine != null)
+            {
+                StopCoroutine(leftBoxCoroutine);
+                leftBoxCoroutine = null;
+            }
+            leftBoxCoroutine = StartCoroutine(SlideBox(leftBox, areBoxesVisible, Vector2.right, boxesSlideDistance, boxesSlideDuration, () => leftBoxCoroutine = null));
+        }
+
+        if (rightBox != null)
+        {
+            if (rightBoxCoroutine != null)
+            {
+                StopCoroutine(rightBoxCoroutine);
+                rightBoxCoroutine = null;
+            }
+            rightBoxCoroutine = StartCoroutine(SlideBox(rightBox, areBoxesVisible, Vector2.left, boxesSlideDistance, boxesSlideDuration, () => rightBoxCoroutine = null));
+        }
+
+        // If Vosk is recording, stop it
+        if (isRecording && voskSpeechToText != null)
+        {
+            voskSpeechToText.ToggleRecording();
+            isRecording = false;
+        }
+
+        // disable Done button to avoid multiple presses until next question
+        if (doneButton != null)
+            doneButton.interactable = false;
+    }
+
+    private IEnumerator SlideBox(RectTransform box, bool show, Vector2 direction, float distance, float duration, System.Action onComplete)
+    {
+        if (box == null)
+        {
+            onComplete?.Invoke();
+            yield break;
+        }
+
+        Vector2 start = box.anchoredPosition;
+        Vector2 end = start + (show ? direction * distance : -direction * distance);
+        float elapsed = 0f;
+
+        if (show) box.gameObject.SetActive(true);
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / duration);
+            box.anchoredPosition = Vector2.Lerp(start, end, t);
+            yield return null;
+        }
+
+        box.anchoredPosition = end;
+
+        if (!show) box.gameObject.SetActive(false);
+        onComplete?.Invoke();
+    }
+
     private void Awake()
     {
         if (voskSpeechToText == null)
@@ -154,6 +275,65 @@ public class BottomBarController : MonoBehaviour
     }
 
     // ✅ Optional UI helper methods for buttons
-    public void OnAlgorithmButtonClicked_DQN() => DataLogger.Instance?.LogAlgorithmChoice("DQN");
-    public void OnAlgorithmButtonClicked_PPO() => DataLogger.Instance?.LogAlgorithmChoice("PPO");
+    // Tracks whether the player has selected an algorithm (PPO or DQN)
+    [HideInInspector]
+    public bool algorithmChosen = false;
+
+    public void OnAlgorithmButtonClicked_DQN()
+    {
+        DataLogger.Instance?.LogAlgorithmChoice("DQN");
+        algorithmChosen = true;
+        // Hide speak image and popup boxes after choice
+        HideUIAfterAlgorithmChoice();
+        // Automatically advance to next question
+        var gc = FindObjectOfType<GameController>();
+        if (gc != null) gc.Advance();
+    }
+
+    public void OnAlgorithmButtonClicked_PPO()
+    {
+        DataLogger.Instance?.LogAlgorithmChoice("PPO");
+        algorithmChosen = true;
+        // Hide speak image and popup boxes after choice
+        HideUIAfterAlgorithmChoice();
+        // Automatically advance to next question
+        var gc = FindObjectOfType<GameController>();
+        if (gc != null) gc.Advance();
+    }
+
+    // Hide speak image and popup boxes using existing coroutines
+    private void HideUIAfterAlgorithmChoice()
+    {
+        // Hide speak image if visible
+        if (isSpeakImageVisible && speakImage != null)
+        {
+            if (slideCoroutine != null)
+            {
+                StopCoroutine(slideCoroutine);
+                slideCoroutine = null;
+            }
+            slideCoroutine = StartCoroutine(SlideSpeakImage(false));
+        }
+
+        // Hide popup boxes if visible
+        if (areBoxesVisible)
+        {
+            // OnPopupBoxesPressed toggles visibility and starts the hide coroutines
+            OnPopupBoxesPressed();
+        }
+    }
+
+    // Allow external code (GameController) to re-enable the speak button when moving to next question
+    public void SetSpeakButtonInteractable(bool enabled)
+    {
+        if (speakButton != null)
+            speakButton.interactable = enabled;
+    }
+
+    // Allow external code (GameController) to re-enable the Done button when moving to next question
+    public void SetDoneButtonInteractable(bool enabled)
+    {
+        if (doneButton != null)
+            doneButton.interactable = enabled;
+    }
 }
