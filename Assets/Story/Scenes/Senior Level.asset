@@ -79,6 +79,6 @@ MonoBehaviour:
   - text: Describe a time when you showed integrity and professionalism under pressure.
     speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
   randomizeSentences: 1
-  sentencesToUse: 2
+  sentencesToUse: 5
   background: {fileID: 21300000, guid: 33fb69851ac2bd14286543889ec6b54d, type: 3}
   nextScene: {fileID: 0}
