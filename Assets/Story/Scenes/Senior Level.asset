@@ -34,6 +34,50 @@ MonoBehaviour:
     speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
   - text: What attributes does your ideal manager possess?
     speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Tell me about the last training session you've been a part of. What area
+      were you working to improve?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: What skills have you developed the most in your recent position?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: What assistance do you typically receive from others you work alongside?
+      How integral is having support and a shared workload to your success?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Tell me about a time when you disagreed with a colleague and how you resolved
+      the issue.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: As a leader, how do you deal with difficult colleagues?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Describe a time when you balanced short-term results with long-term strategy.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Tell me about a decision involving moral or ethical trade-offs.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How do you mentor and develop emerging talent?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: What has been your process for integrating feedback loops in complex teams?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Describe managing organizational resistance to change.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: What metrics do you use to evaluate your leadership success?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Tell me about resolving team conflict using motivational interviewing or
+      empathetic leadership.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How do you promote innovation and creativity in your team?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Describe how you influence people with conflicting agendas.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Give an example of a time you solved a problem in a creative way.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Tell me about a decision you made and later changed your mind on.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Describe leading a project where you used different leadership styles.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: How do you maintain good working relationships with colleagues?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Tell me about your biggest achievement as a leader.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+  - text: Describe a time when you showed integrity and professionalism under pressure.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
   randomizeSentences: 1
   sentencesToUse: 2
   background: {fileID: 21300000, guid: 33fb69851ac2bd14286543889ec6b54d, type: 3}
