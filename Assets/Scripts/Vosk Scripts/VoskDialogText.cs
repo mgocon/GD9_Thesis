@@ -52,8 +52,8 @@ public class VoskDialogText : MonoBehaviour
         {
             if (!string.IsNullOrEmpty(phrase.Text))
             {
-                // Display the recognized speech in the dialogue box
-                DisplayDialogue("Player", phrase.Text);
+                // Display the recognized speech in the dialogue box (without updating speaker name)
+                DisplayDialogue("", phrase.Text);
                 return;
             }
         }
@@ -61,10 +61,6 @@ public class VoskDialogText : MonoBehaviour
 
     public void DisplayDialogue(string speaker, string text)
     {
-        // Update speaker name if available
-        if (speakerNameText != null)
-            speakerNameText.text = speaker;
-
         // Stop any existing typing coroutine
         if (isTyping)
         {
