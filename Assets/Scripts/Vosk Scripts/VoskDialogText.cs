@@ -32,8 +32,6 @@ public class VoskDialogText : MonoBehaviour
         // Initialize text fields
         if (dialogueBox != null)
             dialogueBox.text = "";
-        if (speakerNameText != null)
-            speakerNameText.text = "Player";
     }
 
     void OnDestroy()
@@ -118,8 +116,5 @@ public class VoskDialogText : MonoBehaviour
 
         if (dialogueBox != null)
             dialogueBox.text = "";
-
-        if (speakerNameText != null)
-            speakerNameText.text = "Player";
     }
 }
