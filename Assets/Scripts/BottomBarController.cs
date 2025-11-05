@@ -483,6 +483,19 @@ public class BottomBarController : MonoBehaviour
     {
         if (doneButton != null)
             doneButton.interactable = enabled;
+         }
+    
+    // Make sure this method is PUBLIC
+    // Check if the current sentence is marked as a question requiring algorithm choice
+    public bool IsCurrentSentenceAQuestion()
+    {
+        if (currentScene == null || currentScene.sentences == null) return false;
+        if (playbackOrder == null || sentenceIndex < 0 || sentenceIndex >= playbackOrder.Count) return false;
+        
+        int idx = playbackOrder[sentenceIndex];
+        if (idx < 0 || idx >= currentScene.sentences.Count) return false;
+        
+        return currentScene.sentences[idx].isQuestion;
     }
 
     /// <summary>
