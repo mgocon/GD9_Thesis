@@ -483,92 +483,18 @@ public class BottomBarController : MonoBehaviour
     {
         if (doneButton != null)
             doneButton.interactable = enabled;
-    }
-
-    /// <summary>
-    /// Generate BOTH DQN and PPO feedback for player comparison
-    /// </summary>
-    private void GenerateFeedbackComparison()
+         }
+    
+    // Make sure this method is PUBLIC
+    // Check if the current sentence is marked as a question requiring algorithm choice
+    public bool IsCurrentSentenceAQuestion()
     {
-        if (feedbackManager == null || feedbackComparisonUI == null)
-        {
-            Debug.LogWarning("⚠️ FeedbackManager or FeedbackComparisonUI not available. Skipping feedback generation.");
-            return;
-        }
-
-        // Get the transcribed text from VoskDialogText
-        var voskDialogText = FindObjectOfType<VoskDialogText>();
-        if (voskDialogText != null)
-        {
-            currentTranscription = GetTranscriptionFromVosk(voskDialogText);
-        }
-
-        // Calculate response duration
-        float responseDuration = Time.time - responseStartTime;
-
-        // Generate DQN feedback
-        feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
-        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
-
-        // Generate PPO feedback
-        feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
-        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
-
-        // Display BOTH for comparison
-        if (dqnFeedback != null && ppoFeedback != null && feedbackComparisonUI != null)
-        {
-            feedbackComparisonUI.ShowComparison(dqnFeedback, ppoFeedback);
-            Debug.Log($"📊 Showing feedback comparison - DQN: {dqnFeedback.action} vs PPO: {ppoFeedback.action}");
-        }
-    }
-
-    // NOTE: Unused - player now directly clicks PPO/DQN buttons instead of using OnFeedbackChosen event
-    /*
-    private void OnPlayerChoseFeedback(FeedbackComparisonUI.FeedbackChoice choice)
-    {
-        DataLogger.Instance?.LogAlgorithmChoice(choice.chosenModel.ToString());
-        Debug.Log($"✅ Player chose {choice.chosenModel} feedback");
-        StartCoroutine(AdvanceAfterFeedbackChoice());
-    }
-
-    private IEnumerator AdvanceAfterFeedbackChoice()
-    {
-        yield return new WaitForSeconds(0.5f);
-        var gc = FindObjectOfType<GameController>();
-        if (gc != null) gc.Advance();
-    }
-    */
-
-    /// <summary>
-    /// Helper method to get transcription from VoskDialogText
-    /// </summary>
-    private string GetTranscriptionFromVosk(VoskDialogText voskDialogText)
-    {
-        // VoskDialogText has a public dialogueBox field
-        try
-        {
-            if (voskDialogText.dialogueBox != null)
-            {
-                string text = voskDialogText.dialogueBox.text;
-                if (!string.IsNullOrEmpty(text))
-                {
-                    Debug.Log($"📝 Captured transcription: {text}");
-                    return text;
-                }
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning($"⚠️ Could not access Vosk transcription: {e.Message}");
-        }
-
-        // Fallback: return cached transcription or empty
-        if (!string.IsNullOrEmpty(currentTranscription))
-        {
-            return currentTranscription;
-        }
-
-        Debug.LogWarning("⚠️ No transcription available. Using empty string.");
-        return "";
+        if (currentScene == null || currentScene.sentences == null) return false;
+        if (playbackOrder == null || sentenceIndex < 0 || sentenceIndex >= playbackOrder.Count) return false;
+        
+        int idx = playbackOrder[sentenceIndex];
+        if (idx < 0 || idx >= currentScene.sentences.Count) return false;
+        
+        return currentScene.sentences[idx].isQuestion;
     }
 }

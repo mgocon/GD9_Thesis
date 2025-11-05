@@ -13,12 +13,6 @@ public class GameController : MonoBehaviour
     {
         bottomBar.PlayScene(currentScene);
         backgroundController.SetImage(currentScene.background);
-
-        // ✅ Set current level in DataLogger
-        if (DataLogger.Instance != null)
-        {
-            DataLogger.Instance.SetCurrentLevel(SceneManager.GetActiveScene().name);
-        }
     }
 
     void Update()
@@ -29,13 +23,39 @@ public class GameController : MonoBehaviour
         }
     }
 
-    // Public method to advance to the next sentence or scene (same logic as Space key)
+    // Check if we're currently in a tutorial scene
+    private bool IsTutorialScene()
+    {
+        // Check all loaded scenes, not just the active one
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+            string sceneName = scene.name;
+            
+            if (sceneName == "Tutorial" || 
+                sceneName == "TutorialScene" || 
+                sceneName == "Tutorial Scene")
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void Advance()
     {
         if (!bottomBar.IsCompleted()) return;
 
-        // Require algorithm choice before advancing
-        if (bottomBar != null && !bottomBar.algorithmChosen)
+        // Check if we're in tutorial dynamically
+        bool isTutorialScene = IsTutorialScene();
+        
+        // Determine if algorithm choice is required:
+        // - In tutorial: only require it if the current sentence is a question
+        // - Outside tutorial: always require it
+        bool isQuestion = bottomBar != null && bottomBar.IsCurrentSentenceAQuestion();
+        bool requiresAlgorithmChoice = !isTutorialScene || isQuestion;
+
+        if (requiresAlgorithmChoice && !bottomBar.algorithmChosen)
         {
             Debug.LogWarning("Please choose an algorithm (PPO or DQN) before proceeding.");
             return;
@@ -59,14 +79,17 @@ public class GameController : MonoBehaviour
             currentScene = currentScene.nextScene;
             bottomBar.PlayScene(currentScene);
             backgroundController.SwitchImage(currentScene.background);
-            // reset algorithmChosen after advancing to the next scene/question
+            
+            // Reset algorithmChosen after advancing to the next scene/question
             if (bottomBar != null) bottomBar.algorithmChosen = false;
-            // re-enable speak and done buttons for next question
+            
+            // Re-enable speak and done buttons for next question
             if (bottomBar != null)
             {
                 bottomBar.SetSpeakButtonInteractable(true);
                 bottomBar.SetDoneButtonInteractable(true);
             }
+            
             // Clear any Vosk dialog text from the previous question
             var vosk2 = FindObjectOfType<VoskDialogText>();
             if (vosk2 != null) vosk2.ClearDialogue();
@@ -74,14 +97,17 @@ public class GameController : MonoBehaviour
         else
         {
             bottomBar.PlayNextSentence();
-            // reset algorithmChosen after advancing to the next sentence/question
+            
+            // Reset algorithmChosen after advancing to the next sentence/question
             if (bottomBar != null) bottomBar.algorithmChosen = false;
-            // re-enable speak and done buttons for next question
+            
+            // Re-enable speak and done buttons for next question
             if (bottomBar != null)
             {
                 bottomBar.SetSpeakButtonInteractable(true);
                 bottomBar.SetDoneButtonInteractable(true);
             }
+            
             // Clear any Vosk dialog text from the previous question
             var vosk = FindObjectOfType<VoskDialogText>();
             if (vosk != null) vosk.ClearDialogue();
