@@ -287,6 +287,20 @@ public class BottomBarController : MonoBehaviour
         endBoxCoroutine = StartCoroutine(SlideBox(endBox, false, Vector2.up, endBoxDistance, endBoxDuration, () => endBoxCoroutine = null));
     }
 
+    // Toggle the end popup: show if hidden, hide if visible. Hook this to a Button OnClick.
+    public void ToggleEndPopup()
+    {
+        if (endBox == null) return;
+
+        // Use activeSelf to determine current visibility; if an animation may still be running,
+        // prefer checking whether the panel is active in the hierarchy.
+        bool isVisible = endBox.gameObject.activeSelf;
+        if (isVisible)
+            HideEndPopup();
+        else
+            ShowEndPopup();
+    }
+
     // Called by the end-popup button. Ask GameManager to load the main menu by name.
     public void OnEndPopupBackToMainMenuPressed()
     {
