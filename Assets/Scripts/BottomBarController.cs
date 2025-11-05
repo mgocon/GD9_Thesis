@@ -17,6 +17,13 @@ public class BottomBarController : MonoBehaviour
     [Header("Voice Recognition")]
     public VoskSpeechToText voskSpeechToText;
 
+    [Header("AI Feedback Integration")]
+    public FeedbackManager feedbackManager;
+    public FeedbackComparisonUI feedbackComparisonUI;  // NEW: Show both DQN and PPO
+    public bool autoGenerateFeedback = true;
+    private float responseStartTime;
+    private string currentTranscription = "";
+
     private bool isSpeakImageVisible = false;
     private Coroutine slideCoroutine;
     [Header("Speak Button")]
@@ -130,10 +137,19 @@ public class BottomBarController : MonoBehaviour
             slideCoroutine = null;
         }
         slideCoroutine = StartCoroutine(SlideSpeakImage(!isSpeakImageVisible));
+        
         if (voskSpeechToText != null)
         {
             voskSpeechToText.ToggleRecording();
             isRecording = !isRecording;
+            
+            // Track when recording starts
+            if (isRecording)
+            {
+                responseStartTime = Time.time;
+                currentTranscription = "";
+                Debug.Log("🎤 Started recording player response");
+            }
         }
 
         // disable speak button after pressing once to avoid multiple toggles
@@ -200,7 +216,18 @@ public class BottomBarController : MonoBehaviour
             Debug.LogWarning("Done is disabled until there is recognized speech in the dialog.");
             return;
         }
-        // Toggle boxes same as OnPopupBoxesPressed
+
+        // If Vosk is recording, stop it
+        if (isRecording && voskSpeechToText != null)
+        {
+            voskSpeechToText.ToggleRecording();
+            isRecording = false;
+        }
+
+        // NEW: Generate and show BOTH feedbacks immediately when Done is pressed
+        GenerateFeedbackComparison();
+
+        // Show the PPO/DQN choice boxes (these now act as "Choose PPO" / "Choose DQN")
         areBoxesVisible = !areBoxesVisible;
 
         if (leftBox != null)
@@ -221,13 +248,6 @@ public class BottomBarController : MonoBehaviour
                 rightBoxCoroutine = null;
             }
             rightBoxCoroutine = StartCoroutine(SlideBox(rightBox, areBoxesVisible, Vector2.left, boxesSlideDistance, boxesSlideDuration, () => rightBoxCoroutine = null));
-        }
-
-        // If Vosk is recording, stop it
-        if (isRecording && voskSpeechToText != null)
-        {
-            voskSpeechToText.ToggleRecording();
-            isRecording = false;
         }
 
         // disable Done button to avoid multiple presses until next question
@@ -313,6 +333,9 @@ public class BottomBarController : MonoBehaviour
 
     private void Awake()
     {
+        // Note: We don't use OnFeedbackChosen event anymore
+        // Player directly clicks PPO/DQN buttons to choose
+        
         if (voskSpeechToText == null)
         {
             var voskManager = GameObject.Find("VoskManager");
@@ -329,6 +352,36 @@ public class BottomBarController : MonoBehaviour
                 Debug.LogWarning("VoskSpeechToText not found in scene.");
             }
         }
+
+        // Find feedback components if not assigned
+        if (feedbackManager == null)
+        {
+            feedbackManager = FindObjectOfType<FeedbackManager>();
+            if (feedbackManager == null)
+            {
+                Debug.LogWarning("⚠️ FeedbackManager not found. Feedback features will be disabled.");
+            }
+        }
+
+        if (feedbackComparisonUI == null)
+        {
+            feedbackComparisonUI = FindObjectOfType<FeedbackComparisonUI>();
+            if (feedbackComparisonUI == null)
+            {
+                Debug.LogWarning("⚠️ FeedbackComparisonUI not found. Feedback display will be disabled.");
+            }
+        }
+
+        // Subscribe to Vosk events if available
+        if (voskSpeechToText != null)
+        {
+            var voskDialogText = FindObjectOfType<VoskDialogText>();
+            if (voskDialogText != null)
+            {
+                // We'll capture transcription from VoskDialogText
+                Debug.Log("✅ Connected to Vosk for transcription capture");
+            }
+        }
     }
 
     // ✅ Optional UI helper methods for buttons
@@ -338,24 +391,62 @@ public class BottomBarController : MonoBehaviour
 
     public void OnAlgorithmButtonClicked_DQN()
     {
+        // Player chose DQN feedback (after seeing both)
         DataLogger.Instance?.LogAlgorithmChoice("DQN");
         algorithmChosen = true;
+        
+        Debug.Log("✅ Player chose DQN feedback");
+        
+        // Hide comparison panel
+        if (feedbackComparisonUI != null)
+        {
+            feedbackComparisonUI.HideComparison();
+        }
+        
         // Hide speak image and popup boxes after choice
         HideUIAfterAlgorithmChoice();
-        // Automatically advance to next question
+        
+        // Advance to next question
         var gc = FindObjectOfType<GameController>();
-        if (gc != null) gc.Advance();
+        if (gc != null)
+        {
+            gc.Advance();
+            Debug.Log("✅ Advancing to next question");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ GameController not found - cannot advance");
+        }
     }
 
     public void OnAlgorithmButtonClicked_PPO()
     {
+        // Player chose PPO feedback (after seeing both)
         DataLogger.Instance?.LogAlgorithmChoice("PPO");
         algorithmChosen = true;
+        
+        Debug.Log("✅ Player chose PPO feedback");
+        
+        // Hide comparison panel
+        if (feedbackComparisonUI != null)
+        {
+            feedbackComparisonUI.HideComparison();
+        }
+        
         // Hide speak image and popup boxes after choice
         HideUIAfterAlgorithmChoice();
-        // Automatically advance to next question
+        
+        // Advance to next question
         var gc = FindObjectOfType<GameController>();
-        if (gc != null) gc.Advance();
+        if (gc != null)
+        {
+            gc.Advance();
+            Debug.Log("✅ Advancing to next question");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ GameController not found - cannot advance");
+        }
     }
 
     // Hide speak image and popup boxes using existing coroutines
@@ -392,5 +483,92 @@ public class BottomBarController : MonoBehaviour
     {
         if (doneButton != null)
             doneButton.interactable = enabled;
-         }
+    }
+
+    /// <summary>
+    /// Generate BOTH DQN and PPO feedback for player comparison
+    /// </summary>
+    private void GenerateFeedbackComparison()
+    {
+        if (feedbackManager == null || feedbackComparisonUI == null)
+        {
+            Debug.LogWarning("⚠️ FeedbackManager or FeedbackComparisonUI not available. Skipping feedback generation.");
+            return;
+        }
+
+        // Get the transcribed text from VoskDialogText
+        var voskDialogText = FindObjectOfType<VoskDialogText>();
+        if (voskDialogText != null)
+        {
+            currentTranscription = GetTranscriptionFromVosk(voskDialogText);
+        }
+
+        // Calculate response duration
+        float responseDuration = Time.time - responseStartTime;
+
+        // Generate DQN feedback
+        feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
+        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+
+        // Generate PPO feedback
+        feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
+        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+
+        // Display BOTH for comparison
+        if (dqnFeedback != null && ppoFeedback != null && feedbackComparisonUI != null)
+        {
+            feedbackComparisonUI.ShowComparison(dqnFeedback, ppoFeedback);
+            Debug.Log($"📊 Showing feedback comparison - DQN: {dqnFeedback.action} vs PPO: {ppoFeedback.action}");
+        }
+    }
+
+    // NOTE: Unused - player now directly clicks PPO/DQN buttons instead of using OnFeedbackChosen event
+    /*
+    private void OnPlayerChoseFeedback(FeedbackComparisonUI.FeedbackChoice choice)
+    {
+        DataLogger.Instance?.LogAlgorithmChoice(choice.chosenModel.ToString());
+        Debug.Log($"✅ Player chose {choice.chosenModel} feedback");
+        StartCoroutine(AdvanceAfterFeedbackChoice());
+    }
+
+    private IEnumerator AdvanceAfterFeedbackChoice()
+    {
+        yield return new WaitForSeconds(0.5f);
+        var gc = FindObjectOfType<GameController>();
+        if (gc != null) gc.Advance();
+    }
+    */
+
+    /// <summary>
+    /// Helper method to get transcription from VoskDialogText
+    /// </summary>
+    private string GetTranscriptionFromVosk(VoskDialogText voskDialogText)
+    {
+        // VoskDialogText has a public dialogueBox field
+        try
+        {
+            if (voskDialogText.dialogueBox != null)
+            {
+                string text = voskDialogText.dialogueBox.text;
+                if (!string.IsNullOrEmpty(text))
+                {
+                    Debug.Log($"📝 Captured transcription: {text}");
+                    return text;
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"⚠️ Could not access Vosk transcription: {e.Message}");
+        }
+
+        // Fallback: return cached transcription or empty
+        if (!string.IsNullOrEmpty(currentTranscription))
+        {
+            return currentTranscription;
+        }
+
+        Debug.LogWarning("⚠️ No transcription available. Using empty string.");
+        return "";
+    }
 }
