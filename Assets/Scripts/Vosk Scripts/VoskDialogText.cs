@@ -113,4 +113,16 @@ public class VoskDialogText : MonoBehaviour
         if (dialogueBox != null)
             dialogueBox.text = "";
     }
+
+    // Get current dialogue text (for feedback system)
+    public string GetCurrentText()
+    {
+        return currentText;
+    }
+
+    // Get full displayed text
+    public string GetDisplayedText()
+    {
+        return dialogueBox != null ? dialogueBox.text : "";
+    }
 }
