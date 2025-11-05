@@ -15,21 +15,24 @@ def export_dqn_to_onnx(model_path, onnx_path, state_dim=30, action_dim=6):
     """Export DQN model to ONNX format"""
     print(f"🔄 Exporting DQN model from {model_path} to {onnx_path}")
     
-    # Create agent and load weights
+    # Create agent
     agent = DQNAgent(state_dim, action_dim)
-    agent.load(model_path)
+    
+    # Load checkpoint with weights_only=False for compatibility
+    checkpoint = torch.load(model_path, map_location=agent.device, weights_only=False)
+    agent.q_network.load_state_dict(checkpoint['q_network_state_dict'])
     agent.q_network.eval()
     
     # Create dummy input
     dummy_input = torch.randn(1, state_dim).to(agent.device)
     
-    # Export to ONNX
+    # Export to ONNX (opset 9 - balance between PyTorch support and Barracuda compatibility)
     torch.onnx.export(
         agent.q_network,
         dummy_input,
         onnx_path,
         export_params=True,
-        opset_version=11,
+        opset_version=9,
         do_constant_folding=True,
         input_names=['observation'],
         output_names=['q_values'],
@@ -46,21 +49,24 @@ def export_ppo_to_onnx(model_path, onnx_path, state_dim=30, action_dim=6):
     """Export PPO model to ONNX format"""
     print(f"🔄 Exporting PPO model from {model_path} to {onnx_path}")
     
-    # Create agent and load weights
+    # Create agent
     agent = PPOAgent(state_dim, action_dim)
-    agent.load(model_path)
+    
+    # Load checkpoint with weights_only=False for compatibility
+    checkpoint = torch.load(model_path, map_location=agent.device, weights_only=False)
+    agent.policy.load_state_dict(checkpoint['policy_state_dict'])
     agent.policy.eval()
     
     # Create dummy input
     dummy_input = torch.randn(1, state_dim).to(agent.device)
     
-    # Export to ONNX
+    # Export to ONNX (opset 9 - balance between PyTorch support and Barracuda compatibility)
     torch.onnx.export(
         agent.policy,
         dummy_input,
         onnx_path,
         export_params=True,
-        opset_version=11,
+        opset_version=9,
         do_constant_folding=True,
         input_names=['observation'],
         output_names=['policy_logits', 'value'],
