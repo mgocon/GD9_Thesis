@@ -652,6 +652,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   verboseLogging: 1
+  useMLInference: 1
   currentModelType: 0
   voiceAnalyzer: {fileID: 1490295579}
   trackPerformance: 1

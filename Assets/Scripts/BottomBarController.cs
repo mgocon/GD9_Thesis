@@ -19,7 +19,8 @@ public class BottomBarController : MonoBehaviour
 
     [Header("AI Feedback Integration")]
     public FeedbackManager feedbackManager;
-    public FeedbackComparisonUI feedbackComparisonUI;  // NEW: Show both DQN and PPO
+    public FeedbackComparisonUI feedbackComparisonUI; 
+    public SpeedTrackerUI speedTrackerUI;
     public bool autoGenerateFeedback = true;
     private float responseStartTime;
     private string currentTranscription = "";
@@ -519,6 +520,16 @@ public class BottomBarController : MonoBehaviour
         {
             feedbackComparisonUI.ShowComparison(dqnFeedback, ppoFeedback);
             Debug.Log($"📊 Showing feedback comparison - DQN: {dqnFeedback.action} vs PPO: {ppoFeedback.action}");
+            
+            // Update and show speed tracker UI
+            if (speedTrackerUI != null)
+            {
+                speedTrackerUI.UpdateSpeedDisplay();
+                if (speedTrackerUI.gameObject.activeSelf == false)
+                {
+                    speedTrackerUI.gameObject.SetActive(true);
+                }
+            }
         }
     }
 

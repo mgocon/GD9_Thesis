@@ -56,6 +56,14 @@ public class FeedbackManager : MonoBehaviour
     private List<InterviewPerformance> performanceHistory = new List<InterviewPerformance>();
     private List<FeedbackAction> feedbackHistory = new List<FeedbackAction>();
 
+    // Speed tracking for algorithms
+    public float LastDQNInferenceTime { get; private set; }
+    public float LastPPOInferenceTime { get; private set; }
+    public float AverageDQNInferenceTime { get; private set; }
+    public float AveragePPOInferenceTime { get; private set; }
+    private List<float> dqnInferenceTimes = new List<float>();
+    private List<float> ppoInferenceTimes = new List<float>();
+
     // Current session tracking
     private int currentQuestionIndex = 0;
     private InterviewPerformance lastPerformance;
@@ -205,6 +213,9 @@ public class FeedbackManager : MonoBehaviour
     /// </summary>
     public FeedbackMessage GenerateFeedback(string transcribedText, float duration)
     {
+        // Start timing
+        float startTime = Time.realtimeSinceStartup;
+
         // Analyze voice/text performance
         InterviewPerformance currentPerformance = voiceAnalyzer != null 
             ? voiceAnalyzer.AnalyzeResponse(transcribedText, duration)
@@ -217,18 +228,28 @@ public class FeedbackManager : MonoBehaviour
         if (modelsLoaded && useMLInference)
         {
             action = GetMLFeedback(currentPerformance, out confidence);
+            
+            // Track inference time
+            float inferenceTime = (Time.realtimeSinceStartup - startTime) * 1000f; // Convert to milliseconds
+            TrackInferenceTime(currentModelType, inferenceTime);
+            
             if (verboseLogging)
             {
-                Debug.Log($"ML Inference ({currentModelType}): {action} (confidence: {confidence:F2})");
+                Debug.Log($"ML Inference ({currentModelType}): {action} (confidence: {confidence:F2}, time: {inferenceTime:F2}ms)");
             }
         }
         else
         {
             action = GetRuleBasedFeedback(currentPerformance);
             confidence = 0.7f; // Simulated confidence for rule-based
+            
+            // Track rule-based time
+            float processingTime = (Time.realtimeSinceStartup - startTime) * 1000f;
+            TrackInferenceTime(currentModelType, processingTime);
+            
             if (verboseLogging)
             {
-                Debug.Log($"Rule-Based ({currentModelType}): {action}");
+                Debug.Log($"Rule-Based ({currentModelType}): {action} (time: {processingTime:F2}ms)");
             }
         }
 
@@ -463,6 +484,45 @@ public class FeedbackManager : MonoBehaviour
         }
 
         return (average, improvement);
+    }
+
+    /// <summary>
+    /// Track inference time for algorithm speed comparison
+    /// </summary>
+    private void TrackInferenceTime(ModelType modelType, float timeMs)
+    {
+        if (modelType == ModelType.DQN)
+        {
+            LastDQNInferenceTime = timeMs;
+            dqnInferenceTimes.Add(timeMs);
+            
+            // Calculate running average
+            float sum = 0f;
+            foreach (float time in dqnInferenceTimes)
+                sum += time;
+            AverageDQNInferenceTime = sum / dqnInferenceTimes.Count;
+        }
+        else // PPO
+        {
+            LastPPOInferenceTime = timeMs;
+            ppoInferenceTimes.Add(timeMs);
+            
+            // Calculate running average
+            float sum = 0f;
+            foreach (float time in ppoInferenceTimes)
+                sum += time;
+            AveragePPOInferenceTime = sum / ppoInferenceTimes.Count;
+        }
+    }
+
+    /// <summary>
+    /// Get speed comparison statistics
+    /// </summary>
+    public (float dqnAvg, float ppoAvg, float dqnLast, float ppoLast, int dqnCount, int ppoCount) GetSpeedStats()
+    {
+        return (AverageDQNInferenceTime, AveragePPOInferenceTime, 
+                LastDQNInferenceTime, LastPPOInferenceTime,
+                dqnInferenceTimes.Count, ppoInferenceTimes.Count);
     }
 
     public void ResetSession()
