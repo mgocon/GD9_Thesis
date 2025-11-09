@@ -139,7 +139,7 @@ public class FeedbackComparisonUI : MonoBehaviour
             dqnTitle, dqnMessage, dqnPerformanceText,
             dqnConfidenceBar, dqnClarityBar, dqnPaceBar, dqnToneBar, dqnOverallBar,
             dqnConfidenceValue, dqnClarityValue, dqnPaceValue, dqnToneValue,
-            currentDQNFeedback, "DQN"
+            currentDQNFeedback, "Feedback B"
         );
 
         // Populate PPO side
@@ -147,7 +147,7 @@ public class FeedbackComparisonUI : MonoBehaviour
             ppoTitle, ppoMessage, ppoPerformanceText,
             ppoConfidenceBar, ppoClarityBar, ppoPaceBar, ppoToneBar, ppoOverallBar,
             ppoConfidenceValue, ppoClarityValue, ppoPaceValue, ppoToneValue,
-            currentPPOFeedback, "PPO"
+            currentPPOFeedback, "Feedback A"
         );
 
         // Enable buttons
@@ -171,7 +171,7 @@ public class FeedbackComparisonUI : MonoBehaviour
         string modelName)
     {
         if (title != null)
-            title.text = $"{modelName}: {feedback.title}";
+            title.text = $"{modelName}";
 
         if (message != null)
             message.text = feedback.message;

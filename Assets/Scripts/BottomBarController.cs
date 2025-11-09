@@ -19,8 +19,7 @@ public class BottomBarController : MonoBehaviour
 
     [Header("AI Feedback Integration")]
     public FeedbackManager feedbackManager;
-    public FeedbackComparisonUI feedbackComparisonUI; 
-    public SpeedTrackerUI speedTrackerUI;
+    public FeedbackComparisonUI feedbackComparisonUI;  // NEW: Show both DQN and PPO
     public bool autoGenerateFeedback = true;
     private float responseStartTime;
     private string currentTranscription = "";
@@ -36,6 +35,7 @@ public class BottomBarController : MonoBehaviour
     [Header("Popup Boxes")]
     public RectTransform leftBox;
     public RectTransform rightBox;
+    public RectTransform topBox; // slides from above when showing (third option)
     public float boxesSlideDistance = 300f;
     public float boxesSlideDuration = 0.25f;
 
@@ -51,6 +51,7 @@ public class BottomBarController : MonoBehaviour
     private bool areBoxesVisible = false;
     private Coroutine leftBoxCoroutine;
     private Coroutine rightBoxCoroutine;
+    private Coroutine topBoxCoroutine;
     private int sentenceIndex = -1;
     private StoryScene currentScene;
     private List<int> playbackOrder;
@@ -205,6 +206,17 @@ public class BottomBarController : MonoBehaviour
             }
             rightBoxCoroutine = StartCoroutine(SlideBox(rightBox, areBoxesVisible, Vector2.left, boxesSlideDistance, boxesSlideDuration, () => rightBoxCoroutine = null));
         }
+
+        // Also show/hide the top box (third choice) if present
+        if (topBox != null)
+        {
+            if (topBoxCoroutine != null)
+            {
+                StopCoroutine(topBoxCoroutine);
+                topBoxCoroutine = null;
+            }
+            topBoxCoroutine = StartCoroutine(SlideBox(topBox, areBoxesVisible, Vector2.down, boxesSlideDistance, boxesSlideDuration, () => topBoxCoroutine = null));
+        }
     }
 
     // New Done button: toggles popup boxes and ensures Vosk recording is stopped
@@ -231,7 +243,9 @@ public class BottomBarController : MonoBehaviour
         // Show the PPO/DQN choice boxes (these now act as "Choose PPO" / "Choose DQN")
         areBoxesVisible = !areBoxesVisible;
 
-        if (leftBox != null)
+    Debug.Log($"OnDoneButtonPressed: areBoxesVisible={areBoxesVisible}, leftBox={(leftBox!=null)}, rightBox={(rightBox!=null)}, topBox={(topBox!=null)}");
+
+    if (leftBox != null)
         {
             if (leftBoxCoroutine != null)
             {
@@ -249,6 +263,26 @@ public class BottomBarController : MonoBehaviour
                 rightBoxCoroutine = null;
             }
             rightBoxCoroutine = StartCoroutine(SlideBox(rightBox, areBoxesVisible, Vector2.left, boxesSlideDistance, boxesSlideDuration, () => rightBoxCoroutine = null));
+        }
+
+        // Ensure top box is handled exactly like left/right: activate if showing and start slide
+        if (topBox != null)
+        {
+            Debug.Log($"OnDoneButtonPressed: preparing topBox (activeBefore={topBox.gameObject.activeSelf})");
+            // If we're showing boxes and the topBox (or its parent) is inactive, try to activate the GameObject so the slide coroutine can manipulate it.
+            if (areBoxesVisible && !topBox.gameObject.activeSelf)
+            {
+                topBox.gameObject.SetActive(true);
+                Debug.Log("OnDoneButtonPressed: topBox set active before starting slide");
+            }
+
+            if (topBoxCoroutine != null)
+            {
+                StopCoroutine(topBoxCoroutine);
+                topBoxCoroutine = null;
+            }
+            Debug.Log("OnDoneButtonPressed: starting topBox slide coroutine");
+            topBoxCoroutine = StartCoroutine(SlideBox(topBox, areBoxesVisible, Vector2.down, boxesSlideDistance, boxesSlideDuration, () => topBoxCoroutine = null));
         }
 
         // disable Done button to avoid multiple presses until next question
@@ -398,17 +432,6 @@ public class BottomBarController : MonoBehaviour
         
         Debug.Log("✅ Player chose DQN feedback");
         
-        // Update session score with the chosen feedback's performance
-        if (feedbackComparisonUI != null && feedbackManager != null)
-        {
-            var dqnFeedback = feedbackComparisonUI.GetCurrentDQNFeedback();
-            if (dqnFeedback != null && dqnFeedback.currentPerformance != null)
-            {
-                feedbackManager.RecordPerformanceScore(dqnFeedback.currentPerformance);
-                Debug.Log($"📊 Recorded DQN performance to session score");
-            }
-        }
-        
         // Hide comparison panel
         if (feedbackComparisonUI != null)
         {
@@ -439,17 +462,6 @@ public class BottomBarController : MonoBehaviour
         
         Debug.Log("✅ Player chose PPO feedback");
         
-        // Update session score with the chosen feedback's performance
-        if (feedbackComparisonUI != null && feedbackManager != null)
-        {
-            var ppoFeedback = feedbackComparisonUI.GetCurrentPPOFeedback();
-            if (ppoFeedback != null && ppoFeedback.currentPerformance != null)
-            {
-                feedbackManager.RecordPerformanceScore(ppoFeedback.currentPerformance);
-                Debug.Log($"📊 Recorded PPO performance to session score");
-            }
-        }
-        
         // Hide comparison panel
         if (feedbackComparisonUI != null)
         {
@@ -459,6 +471,36 @@ public class BottomBarController : MonoBehaviour
         // Hide speak image and popup boxes after choice
         HideUIAfterAlgorithmChoice();
         
+        // Advance to next question
+        var gc = FindObjectOfType<GameController>();
+        if (gc != null)
+        {
+            gc.Advance();
+            Debug.Log("✅ Advancing to next question");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ GameController not found - cannot advance");
+        }
+    }
+
+    public void OnAlgorithmButtonClicked_Neither()
+    {
+        // Player chose neither feedback option
+        DataLogger.Instance?.LogAlgorithmChoice("Neither");
+        algorithmChosen = true;
+
+        Debug.Log("ℹ️ Player chose 'Neither' (no algorithm preferred)");
+
+        // Hide comparison panel
+        if (feedbackComparisonUI != null)
+        {
+            feedbackComparisonUI.HideComparison();
+        }
+
+        // Hide speak image and popup boxes after choice
+        HideUIAfterAlgorithmChoice();
+
         // Advance to next question
         var gc = FindObjectOfType<GameController>();
         if (gc != null)
@@ -529,26 +571,19 @@ public class BottomBarController : MonoBehaviour
         // Calculate response duration
         float responseDuration = Time.time - responseStartTime;
 
-        // Generate DQN feedback WITHOUT updating session score (will update when player chooses)
+        // Generate DQN feedback
         feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
-        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
+        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
 
-        // Generate PPO feedback WITHOUT updating session score (will update when player chooses)
+        // Generate PPO feedback
         feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
-        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
+        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
 
         // Display BOTH for comparison
         if (dqnFeedback != null && ppoFeedback != null && feedbackComparisonUI != null)
         {
             feedbackComparisonUI.ShowComparison(dqnFeedback, ppoFeedback);
             Debug.Log($"📊 Showing feedback comparison - DQN: {dqnFeedback.action} vs PPO: {ppoFeedback.action}");
-            
-            // Speed tracker will automatically show/hide based on feedback comparison visibility
-            // Just update the display if it exists
-            if (speedTrackerUI != null)
-            {
-                speedTrackerUI.UpdateSpeedDisplay();
-            }
         }
     }
 
