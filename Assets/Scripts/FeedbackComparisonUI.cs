@@ -124,6 +124,13 @@ public class FeedbackComparisonUI : MonoBehaviour
         currentDQNFeedback = dqnFeedback;
         currentPPOFeedback = ppoFeedback;
 
+        // Record DQN and PPO scores separately for end-of-game summary
+        if (FeedbackManager.Instance != null)
+        {
+            FeedbackManager.Instance.RecordDQNScore(dqnFeedback.currentPerformance);
+            FeedbackManager.Instance.RecordPPOScore(ppoFeedback.currentPerformance);
+        }
+
         StartCoroutine(DisplayComparisonCoroutine());
     }
 

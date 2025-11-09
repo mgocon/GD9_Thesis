@@ -20,6 +20,8 @@ public class BottomBarController : MonoBehaviour
     [Header("AI Feedback Integration")]
     public FeedbackManager feedbackManager;
     public FeedbackComparisonUI feedbackComparisonUI;  // NEW: Show both DQN and PPO
+    public SpeedTrackerUI speedTrackerUI;
+    public GameSummaryScreen gameSummaryScreen; // NEW: End-of-game summary
     public bool autoGenerateFeedback = true;
     private float responseStartTime;
     private string currentTranscription = "";
@@ -293,6 +295,19 @@ public class BottomBarController : MonoBehaviour
     // Show the end-of-level popup (call when player finished all questions and there is no next scene)
     public void ShowEndPopup()
     {
+        Debug.Log("=== ShowEndPopup() called ===");
+        
+        // Show the game summary screen first
+        if (gameSummaryScreen != null)
+        {
+            Debug.Log("GameSummaryScreen found, calling ShowSummary()");
+            gameSummaryScreen.ShowSummary();
+        }
+        else
+        {
+            Debug.LogWarning("GameSummaryScreen is NULL in BottomBarController!");
+        }
+        
         if (endBox == null) return;
 
         if (endBoxCoroutine != null)

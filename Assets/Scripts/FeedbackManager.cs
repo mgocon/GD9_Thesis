@@ -72,6 +72,21 @@ public class FeedbackManager : MonoBehaviour
     private float sessionOverallTotal = 0f;
     private int sessionQuestionCount = 0;
 
+    // Separate tracking for DQN and PPO
+    private float dqnConfidenceTotal = 0f;
+    private float dqnClarityTotal = 0f;
+    private float dqnPaceTotal = 0f;
+    private float dqnToneTotal = 0f;
+    private float dqnOverallTotal = 0f;
+    private int dqnQuestionCount = 0;
+
+    private float ppoConfidenceTotal = 0f;
+    private float ppoClarityTotal = 0f;
+    private float ppoPaceTotal = 0f;
+    private float ppoToneTotal = 0f;
+    private float ppoOverallTotal = 0f;
+    private int ppoQuestionCount = 0;
+
     public float SessionAverageConfidence => sessionQuestionCount > 0 ? sessionConfidenceTotal / sessionQuestionCount : 0f;
     public float SessionAverageClarity => sessionQuestionCount > 0 ? sessionClarityTotal / sessionQuestionCount : 0f;
     public float SessionAveragePace => sessionQuestionCount > 0 ? sessionPaceTotal / sessionQuestionCount : 0f;
@@ -580,12 +595,66 @@ public class FeedbackManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Record DQN algorithm's performance score
+    /// </summary>
+    public void RecordDQNScore(InterviewPerformance performance)
+    {
+        dqnConfidenceTotal += performance.confidence;
+        dqnClarityTotal += performance.clarity;
+        dqnPaceTotal += performance.pace;
+        dqnToneTotal += performance.tone;
+        dqnOverallTotal += performance.overall;
+        dqnQuestionCount++;
+    }
+
+    /// <summary>
+    /// Record PPO algorithm's performance score
+    /// </summary>
+    public void RecordPPOScore(InterviewPerformance performance)
+    {
+        ppoConfidenceTotal += performance.confidence;
+        ppoClarityTotal += performance.clarity;
+        ppoPaceTotal += performance.pace;
+        ppoToneTotal += performance.tone;
+        ppoOverallTotal += performance.overall;
+        ppoQuestionCount++;
+    }
+
+    /// <summary>
     /// Get detailed session score breakdown
     /// </summary>
     public (float avgConfidence, float avgClarity, float avgPace, float avgTone, float avgOverall, int questionCount) GetSessionScoreBreakdown()
     {
         return (SessionAverageConfidence, SessionAverageClarity, SessionAveragePace, 
                 SessionAverageTone, SessionAverageOverall, sessionQuestionCount);
+    }
+
+    /// <summary>
+    /// Get DQN algorithm score breakdown
+    /// </summary>
+    public (float avgConfidence, float avgClarity, float avgPace, float avgTone, float avgOverall, int questionCount) GetDQNScoreBreakdown()
+    {
+        float avgConf = dqnQuestionCount > 0 ? dqnConfidenceTotal / dqnQuestionCount : 0f;
+        float avgClar = dqnQuestionCount > 0 ? dqnClarityTotal / dqnQuestionCount : 0f;
+        float avgPace = dqnQuestionCount > 0 ? dqnPaceTotal / dqnQuestionCount : 0f;
+        float avgTone = dqnQuestionCount > 0 ? dqnToneTotal / dqnQuestionCount : 0f;
+        float avgOverall = dqnQuestionCount > 0 ? dqnOverallTotal / dqnQuestionCount : 0f;
+        
+        return (avgConf, avgClar, avgPace, avgTone, avgOverall, dqnQuestionCount);
+    }
+
+    /// <summary>
+    /// Get PPO algorithm score breakdown
+    /// </summary>
+    public (float avgConfidence, float avgClarity, float avgPace, float avgTone, float avgOverall, int questionCount) GetPPOScoreBreakdown()
+    {
+        float avgConf = ppoQuestionCount > 0 ? ppoConfidenceTotal / ppoQuestionCount : 0f;
+        float avgClar = ppoQuestionCount > 0 ? ppoClarityTotal / ppoQuestionCount : 0f;
+        float avgPace = ppoQuestionCount > 0 ? ppoPaceTotal / ppoQuestionCount : 0f;
+        float avgTone = ppoQuestionCount > 0 ? ppoToneTotal / ppoQuestionCount : 0f;
+        float avgOverall = ppoQuestionCount > 0 ? ppoOverallTotal / ppoQuestionCount : 0f;
+        
+        return (avgConf, avgClar, avgPace, avgTone, avgOverall, ppoQuestionCount);
     }
 
     public void ResetSession()
@@ -601,6 +670,22 @@ public class FeedbackManager : MonoBehaviour
         sessionToneTotal = 0f;
         sessionOverallTotal = 0f;
         sessionQuestionCount = 0;
+        
+        // Reset DQN scores
+        dqnConfidenceTotal = 0f;
+        dqnClarityTotal = 0f;
+        dqnPaceTotal = 0f;
+        dqnToneTotal = 0f;
+        dqnOverallTotal = 0f;
+        dqnQuestionCount = 0;
+        
+        // Reset PPO scores
+        ppoConfidenceTotal = 0f;
+        ppoClarityTotal = 0f;
+        ppoPaceTotal = 0f;
+        ppoToneTotal = 0f;
+        ppoOverallTotal = 0f;
+        ppoQuestionCount = 0;
         
         Debug.Log("Feedback session reset");
     }

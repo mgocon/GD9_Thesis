@@ -633,7 +633,7 @@ GameObject:
   - component: {fileID: 1490295577}
   - component: {fileID: 1490295579}
   m_Layer: 0
-  m_Name: FeedbackSystem
+  m_Name: FeedbackManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -684,7 +684,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00857214149bd2549a533154f68983a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  analysisThreshold: 0.1
   useSimulation: 1
 --- !u!1 &1644243862
 GameObject:
