@@ -99,29 +99,30 @@ public class SessionScoreDisplay : MonoBehaviour
         float avgOverall = breakdown.avgOverall;
         int questionCount = breakdown.questionCount;
 
-        // Update overall score
+        // Update overall score with clear label
         if (overallScoreText != null)
         {
             if (questionCount > 0)
             {
-                overallScoreText.text = GetColoredScore(avgOverall);
+                overallScoreText.text = $"<b>Overall Session Score:</b>\n{GetColoredScore(avgOverall)}";
             }
             else
             {
-                overallScoreText.text = "<color=#AAAAAA>--</color>";
+                overallScoreText.text = "<b>Overall Session Score:</b>\n<color=#AAAAAA>--</color>";
             }
         }
 
         // Update question count
         if (questionCountText != null)
         {
-            questionCountText.text = questionCount > 0 ? $"Based on {questionCount} question(s)" : "No questions answered yet";
+            questionCountText.text = questionCount > 0 ? $"Based on {questionCount} question(s) answered" : "No questions answered yet";
         }
 
         // Update details breakdown
         if (detailsText != null && showDetails && questionCount > 0)
         {
-            detailsText.text = $"Confidence: {GetColoredScore(breakdown.avgConfidence)}\n" +
+            detailsText.text = $"<b>Performance Breakdown:</b>\n" +
+                              $"Confidence: {GetColoredScore(breakdown.avgConfidence)}\n" +
                               $"Clarity: {GetColoredScore(breakdown.avgClarity)}\n" +
                               $"Pace: {GetColoredScore(breakdown.avgPace)}\n" +
                               $"Tone: {GetColoredScore(breakdown.avgTone)}";

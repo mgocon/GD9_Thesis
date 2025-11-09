@@ -29,6 +29,7 @@ public class FeedbackComparisonUI : MonoBehaviour
     [SerializeField] private GameObject comparisonPanel;
     [SerializeField] private CanvasGroup canvasGroup;
     [SerializeField] private TextMeshProUGUI instructionText;
+    [SerializeField] private TextMeshProUGUI overallQuestionScoreText; // Average of DQN and PPO overall scores
     
     [Header("DQN Feedback (Left)")]
     [SerializeField] private GameObject dqnPanel;
@@ -47,6 +48,7 @@ public class FeedbackComparisonUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI dqnClarityValue;
     [SerializeField] private TextMeshProUGUI dqnPaceValue;
     [SerializeField] private TextMeshProUGUI dqnToneValue;
+    [SerializeField] private TextMeshProUGUI dqnOverallValue;
     
     [Header("PPO Feedback (Right)")]
     [SerializeField] private GameObject ppoPanel;
@@ -65,6 +67,7 @@ public class FeedbackComparisonUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI ppoClarityValue;
     [SerializeField] private TextMeshProUGUI ppoPaceValue;
     [SerializeField] private TextMeshProUGUI ppoToneValue;
+    [SerializeField] private TextMeshProUGUI ppoOverallValue;
 
     [Header("Visual Feedback")]
     [SerializeField] private Color excellentColor = new Color(0.2f, 0.8f, 0.2f);
@@ -139,7 +142,7 @@ public class FeedbackComparisonUI : MonoBehaviour
             dqnTitle, dqnMessage, dqnPerformanceText,
             dqnConfidenceBar, dqnClarityBar, dqnPaceBar, dqnToneBar, dqnOverallBar,
             dqnConfidenceValue, dqnClarityValue, dqnPaceValue, dqnToneValue,
-            currentDQNFeedback, "Feedback B"
+            currentDQNFeedback, "DQN"
         );
 
         // Populate PPO side
@@ -147,8 +150,22 @@ public class FeedbackComparisonUI : MonoBehaviour
             ppoTitle, ppoMessage, ppoPerformanceText,
             ppoConfidenceBar, ppoClarityBar, ppoPaceBar, ppoToneBar, ppoOverallBar,
             ppoConfidenceValue, ppoClarityValue, ppoPaceValue, ppoToneValue,
-            currentPPOFeedback, "Feedback A"
+            currentPPOFeedback, "PPO"
         );
+
+        // Calculate and display overall question score (average of DQN and PPO)
+        if (overallQuestionScoreText != null && currentDQNFeedback != null && currentPPOFeedback != null)
+        {
+            float dqnOverall = currentDQNFeedback.currentPerformance.overall;
+            float ppoOverall = currentPPOFeedback.currentPerformance.overall;
+            float averageOverall = (dqnOverall + ppoOverall) / 2f;
+            int percentage = Mathf.RoundToInt(averageOverall * 100f);
+            
+            Color scoreColor = GetScoreColor(averageOverall);
+            string hexColor = ColorUtility.ToHtmlStringRGB(scoreColor);
+            
+            overallQuestionScoreText.text = $"<b>Overall Question Score:</b> <color=#{hexColor}>{percentage}%</color>";
+        }
 
         // Enable buttons
         if (chooseDQNButton != null) chooseDQNButton.interactable = true;
@@ -182,7 +199,7 @@ public class FeedbackComparisonUI : MonoBehaviour
                                    $"Confidence: {(feedback.confidence * 100):F0}%";
         }
 
-        // Set performance bars with value labels
+        // Set performance bars with value labels (Overall doesn't need a label - it's shown in performanceText)
         UpdateSlider(confidenceBar, feedback.currentPerformance.confidence, confidenceValue);
         UpdateSlider(clarityBar, feedback.currentPerformance.clarity, clarityValue);
         UpdateSlider(paceBar, feedback.currentPerformance.pace, paceValue);
@@ -257,6 +274,10 @@ public class FeedbackComparisonUI : MonoBehaviour
         // Fade out
         yield return StartCoroutine(FadeOut());
 
+        // Clear the overall question score text
+        if (overallQuestionScoreText != null)
+            overallQuestionScoreText.text = "";
+
         // Hide panel
         if (comparisonPanel != null)
             comparisonPanel.SetActive(false);
@@ -296,6 +317,19 @@ public class FeedbackComparisonUI : MonoBehaviour
     }
 
     /// <summary>
+    /// Get color based on score performance
+    /// </summary>
+    private Color GetScoreColor(float score)
+    {
+        if (score >= 0.7f)
+            return excellentColor;
+        else if (score >= 0.5f)
+            return goodColor;
+        else
+            return needsImprovementColor;
+    }
+
+    /// <summary>
     /// Manually close the comparison panel
     /// </summary>
     public void HideComparison()
@@ -303,6 +337,11 @@ public class FeedbackComparisonUI : MonoBehaviour
         if (isDisplaying)
         {
             StopAllCoroutines();
+            
+            // Clear the overall question score text
+            if (overallQuestionScoreText != null)
+                overallQuestionScoreText.text = "";
+            
             if (comparisonPanel != null)
                 comparisonPanel.SetActive(false);
             isDisplaying = false;
