@@ -42,6 +42,12 @@ public class FeedbackComparisonUI : MonoBehaviour
     [SerializeField] private Slider dqnToneBar;
     [SerializeField] private Slider dqnOverallBar;
     
+    [Header("DQN Slider Value Labels")]
+    [SerializeField] private TextMeshProUGUI dqnConfidenceValue;
+    [SerializeField] private TextMeshProUGUI dqnClarityValue;
+    [SerializeField] private TextMeshProUGUI dqnPaceValue;
+    [SerializeField] private TextMeshProUGUI dqnToneValue;
+    
     [Header("PPO Feedback (Right)")]
     [SerializeField] private GameObject ppoPanel;
     [SerializeField] private TextMeshProUGUI ppoTitle;
@@ -53,6 +59,12 @@ public class FeedbackComparisonUI : MonoBehaviour
     [SerializeField] private Slider ppoPaceBar;
     [SerializeField] private Slider ppoToneBar;
     [SerializeField] private Slider ppoOverallBar;
+
+    [Header("PPO Slider Value Labels")]
+    [SerializeField] private TextMeshProUGUI ppoConfidenceValue;
+    [SerializeField] private TextMeshProUGUI ppoClarityValue;
+    [SerializeField] private TextMeshProUGUI ppoPaceValue;
+    [SerializeField] private TextMeshProUGUI ppoToneValue;
 
     [Header("Visual Feedback")]
     [SerializeField] private Color excellentColor = new Color(0.2f, 0.8f, 0.2f);
@@ -118,6 +130,7 @@ public class FeedbackComparisonUI : MonoBehaviour
         PopulateFeedbackPanel(
             dqnTitle, dqnMessage, dqnPerformanceText,
             dqnConfidenceBar, dqnClarityBar, dqnPaceBar, dqnToneBar, dqnOverallBar,
+            dqnConfidenceValue, dqnClarityValue, dqnPaceValue, dqnToneValue,
             currentDQNFeedback, "DQN"
         );
 
@@ -125,6 +138,7 @@ public class FeedbackComparisonUI : MonoBehaviour
         PopulateFeedbackPanel(
             ppoTitle, ppoMessage, ppoPerformanceText,
             ppoConfidenceBar, ppoClarityBar, ppoPaceBar, ppoToneBar, ppoOverallBar,
+            ppoConfidenceValue, ppoClarityValue, ppoPaceValue, ppoToneValue,
             currentPPOFeedback, "PPO"
         );
 
@@ -144,6 +158,7 @@ public class FeedbackComparisonUI : MonoBehaviour
         TextMeshProUGUI message,
         TextMeshProUGUI performanceText,
         Slider confidenceBar, Slider clarityBar, Slider paceBar, Slider toneBar, Slider overallBar,
+        TextMeshProUGUI confidenceValue, TextMeshProUGUI clarityValue, TextMeshProUGUI paceValue, TextMeshProUGUI toneValue,
         FeedbackMessage feedback,
         string modelName)
     {
@@ -159,19 +174,25 @@ public class FeedbackComparisonUI : MonoBehaviour
                                    $"Confidence: {(feedback.confidence * 100):F0}%";
         }
 
-        // Set performance bars
-        UpdateSlider(confidenceBar, feedback.currentPerformance.confidence);
-        UpdateSlider(clarityBar, feedback.currentPerformance.clarity);
-        UpdateSlider(paceBar, feedback.currentPerformance.pace);
-        UpdateSlider(toneBar, feedback.currentPerformance.tone);
+        // Set performance bars with value labels
+        UpdateSlider(confidenceBar, feedback.currentPerformance.confidence, confidenceValue);
+        UpdateSlider(clarityBar, feedback.currentPerformance.clarity, clarityValue);
+        UpdateSlider(paceBar, feedback.currentPerformance.pace, paceValue);
+        UpdateSlider(toneBar, feedback.currentPerformance.tone, toneValue);
         UpdateSlider(overallBar, feedback.currentPerformance.overall);
     }
 
-    private void UpdateSlider(Slider slider, float value)
+    private void UpdateSlider(Slider slider, float value, TextMeshProUGUI valueLabel = null)
     {
         if (slider == null) return;
 
         slider.value = value;
+        
+        // Update numerical value label
+        if (valueLabel != null)
+        {
+            valueLabel.text = $"{(value * 100):F0}%";
+        }
         
         // Color code based on value
         var fillImage = slider.fillRect?.GetComponent<Image>();
