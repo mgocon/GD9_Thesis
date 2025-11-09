@@ -398,6 +398,17 @@ public class BottomBarController : MonoBehaviour
         
         Debug.Log("✅ Player chose DQN feedback");
         
+        // Update session score with the chosen feedback's performance
+        if (feedbackComparisonUI != null && feedbackManager != null)
+        {
+            var dqnFeedback = feedbackComparisonUI.GetCurrentDQNFeedback();
+            if (dqnFeedback != null && dqnFeedback.currentPerformance != null)
+            {
+                feedbackManager.RecordPerformanceScore(dqnFeedback.currentPerformance);
+                Debug.Log($"📊 Recorded DQN performance to session score");
+            }
+        }
+        
         // Hide comparison panel
         if (feedbackComparisonUI != null)
         {
@@ -427,6 +438,17 @@ public class BottomBarController : MonoBehaviour
         algorithmChosen = true;
         
         Debug.Log("✅ Player chose PPO feedback");
+        
+        // Update session score with the chosen feedback's performance
+        if (feedbackComparisonUI != null && feedbackManager != null)
+        {
+            var ppoFeedback = feedbackComparisonUI.GetCurrentPPOFeedback();
+            if (ppoFeedback != null && ppoFeedback.currentPerformance != null)
+            {
+                feedbackManager.RecordPerformanceScore(ppoFeedback.currentPerformance);
+                Debug.Log($"📊 Recorded PPO performance to session score");
+            }
+        }
         
         // Hide comparison panel
         if (feedbackComparisonUI != null)
@@ -507,13 +529,13 @@ public class BottomBarController : MonoBehaviour
         // Calculate response duration
         float responseDuration = Time.time - responseStartTime;
 
-        // Generate DQN feedback
+        // Generate DQN feedback WITHOUT updating session score (will update when player chooses)
         feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
-        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
 
-        // Generate PPO feedback
+        // Generate PPO feedback WITHOUT updating session score (will update when player chooses)
         feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
-        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
 
         // Display BOTH for comparison
         if (dqnFeedback != null && ppoFeedback != null && feedbackComparisonUI != null)
@@ -521,14 +543,11 @@ public class BottomBarController : MonoBehaviour
             feedbackComparisonUI.ShowComparison(dqnFeedback, ppoFeedback);
             Debug.Log($"📊 Showing feedback comparison - DQN: {dqnFeedback.action} vs PPO: {ppoFeedback.action}");
             
-            // Update and show speed tracker UI
+            // Speed tracker will automatically show/hide based on feedback comparison visibility
+            // Just update the display if it exists
             if (speedTrackerUI != null)
             {
                 speedTrackerUI.UpdateSpeedDisplay();
-                if (speedTrackerUI.gameObject.activeSelf == false)
-                {
-                    speedTrackerUI.gameObject.SetActive(true);
-                }
             }
         }
     }

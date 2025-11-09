@@ -87,6 +87,9 @@ public class FeedbackMessage
     public InterviewPerformance currentPerformance;
     public InterviewPerformance expectedImprovement;
 
+    // Configuration for message generation
+    public static bool UseGenericFeedback = true;  // Toggle between generic and interview-specific feedback
+
     public static FeedbackMessage Create(FeedbackAction action, float confidence, 
         InterviewPerformance current, InterviewPerformance improvement)
     {
@@ -102,12 +105,12 @@ public class FeedbackMessage
         switch (action)
         {
             case FeedbackAction.EncourageConfidence:
-                feedback.title = "Build Your Confidence";
+                feedback.title = UseGenericFeedback ? "Improve Confidence" : "Build Your Confidence";
                 feedback.message = GenerateConfidenceMessage(current);
                 break;
 
             case FeedbackAction.ImproveSpeechPace:
-                feedback.title = "Adjust Your Pace";
+                feedback.title = UseGenericFeedback ? "Adjust Pace" : "Adjust Your Pace";
                 feedback.message = GeneratePaceMessage(current);
                 break;
                 
@@ -117,7 +120,7 @@ public class FeedbackMessage
                 break;
                 
             case FeedbackAction.SpeedUpPacing:
-                feedback.title = "Pick Up the Pace";
+                feedback.title = "Speed Up";
                 feedback.message = GenerateSpeedUpMessage(current);
                 break;
 

@@ -81,6 +81,13 @@ public class FeedbackComparisonUI : MonoBehaviour
     private float comparisonStartTime;
     private bool isDisplaying = false;
 
+    // Public property to check if comparison is currently being displayed
+    public bool IsDisplaying => isDisplaying;
+
+    // Public methods to get current feedback messages
+    public FeedbackMessage GetCurrentDQNFeedback() => currentDQNFeedback;
+    public FeedbackMessage GetCurrentPPOFeedback() => currentPPOFeedback;
+
     private void Awake()
     {
         if (canvasGroup == null && comparisonPanel != null)
@@ -120,6 +127,7 @@ public class FeedbackComparisonUI : MonoBehaviour
     private IEnumerator DisplayComparisonCoroutine()
     {
         isDisplaying = true;
+        Debug.Log("🎯 FeedbackComparisonUI: isDisplaying = TRUE");
         comparisonStartTime = Time.time;
 
         // Set instruction text
@@ -254,6 +262,7 @@ public class FeedbackComparisonUI : MonoBehaviour
             comparisonPanel.SetActive(false);
 
         isDisplaying = false;
+        Debug.Log("🎯 FeedbackComparisonUI: isDisplaying = FALSE (after fade)");
     }
 
     private IEnumerator FadeIn()
@@ -297,6 +306,7 @@ public class FeedbackComparisonUI : MonoBehaviour
             if (comparisonPanel != null)
                 comparisonPanel.SetActive(false);
             isDisplaying = false;
+            Debug.Log("🎯 FeedbackComparisonUI: isDisplaying = FALSE (manual hide)");
         }
     }
 }

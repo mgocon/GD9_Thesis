@@ -3,6 +3,7 @@ using TMPro;
 
 /// <summary>
 /// Displays algorithm speed comparison for DQN vs PPO
+/// Shows/hides automatically when feedback comparison appears/disappears
 /// </summary>
 public class SpeedTrackerUI : MonoBehaviour
 {
@@ -13,21 +14,26 @@ public class SpeedTrackerUI : MonoBehaviour
     [SerializeField] private GameObject speedPanel;
 
     [Header("Settings")]
-    [SerializeField] private bool showOnStart = false;
     [SerializeField] private bool updateRealtime = true;
     [SerializeField] private float updateInterval = 0.5f;
 
     private FeedbackManager feedbackManager;
+    private FeedbackComparisonUI feedbackComparisonUI;
     private float lastUpdateTime;
 
     private void Start()
     {
         feedbackManager = FeedbackManager.Instance;
+        feedbackComparisonUI = FindObjectOfType<FeedbackComparisonUI>();
         
-        if (speedPanel != null)
-            speedPanel.SetActive(showOnStart);
-        else
-            gameObject.SetActive(showOnStart);
+        Debug.Log($"⚡ SpeedTrackerUI: Started. FeedbackManager={feedbackManager != null}, FeedbackComparisonUI={feedbackComparisonUI != null}");
+        
+        // If no speedPanel is assigned, use this GameObject
+        if (speedPanel == null)
+            speedPanel = this.gameObject;
+        
+        // Start hidden - will show when feedback comparison appears
+        speedPanel.SetActive(false);
     }
 
     private void Update()
@@ -35,11 +41,55 @@ public class SpeedTrackerUI : MonoBehaviour
         if (!updateRealtime || feedbackManager == null)
             return;
 
-        if (Time.time - lastUpdateTime >= updateInterval)
+        // Check if feedback comparison is showing
+        bool shouldShow = feedbackComparisonUI != null && feedbackComparisonUI.IsDisplaying;
+        
+        if (speedPanel != null && speedPanel.activeSelf != shouldShow)
+        {
+            speedPanel.SetActive(shouldShow);
+            if (shouldShow)
+            {
+                Debug.Log("⚡ SpeedTrackerUI: Showing panel");
+                UpdateSpeedDisplay(); // Update immediately when showing
+            }
+            else
+            {
+                Debug.Log("⚡ SpeedTrackerUI: Hiding panel");
+            }
+        }
+        else if (speedPanel == null && gameObject.activeSelf != shouldShow)
+        {
+            gameObject.SetActive(shouldShow);
+            if (shouldShow)
+            {
+                Debug.Log("⚡ SpeedTrackerUI: Showing GameObject");
+                UpdateSpeedDisplay();
+            }
+        }
+
+        // Update speed display periodically when visible
+        if (shouldShow && Time.time - lastUpdateTime >= updateInterval)
         {
             UpdateSpeedDisplay();
             lastUpdateTime = Time.time;
         }
+    }
+
+    public void ShowSpeed()
+    {
+        if (speedPanel != null)
+            speedPanel.SetActive(true);
+        else
+            gameObject.SetActive(true);
+        UpdateSpeedDisplay();
+    }
+
+    public void HideSpeed()
+    {
+        if (speedPanel != null)
+            speedPanel.SetActive(false);
+        else
+            gameObject.SetActive(false);
     }
 
     public void UpdateSpeedDisplay()

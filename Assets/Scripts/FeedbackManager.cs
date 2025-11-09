@@ -64,8 +64,22 @@ public class FeedbackManager : MonoBehaviour
     private List<float> dqnInferenceTimes = new List<float>();
     private List<float> ppoInferenceTimes = new List<float>();
 
+    // Overall session score tracking
+    private float sessionConfidenceTotal = 0f;
+    private float sessionClarityTotal = 0f;
+    private float sessionPaceTotal = 0f;
+    private float sessionToneTotal = 0f;
+    private float sessionOverallTotal = 0f;
+    private int sessionQuestionCount = 0;
+
+    public float SessionAverageConfidence => sessionQuestionCount > 0 ? sessionConfidenceTotal / sessionQuestionCount : 0f;
+    public float SessionAverageClarity => sessionQuestionCount > 0 ? sessionClarityTotal / sessionQuestionCount : 0f;
+    public float SessionAveragePace => sessionQuestionCount > 0 ? sessionPaceTotal / sessionQuestionCount : 0f;
+    public float SessionAverageTone => sessionQuestionCount > 0 ? sessionToneTotal / sessionQuestionCount : 0f;
+    public float SessionAverageOverall => sessionQuestionCount > 0 ? sessionOverallTotal / sessionQuestionCount : 0f;
+    public int SessionQuestionCount => sessionQuestionCount;
+
     // Current session tracking
-    private int currentQuestionIndex = 0;
     private InterviewPerformance lastPerformance;
 
     private void Awake()
@@ -213,6 +227,14 @@ public class FeedbackManager : MonoBehaviour
     /// </summary>
     public FeedbackMessage GenerateFeedback(string transcribedText, float duration)
     {
+        return GenerateFeedback(transcribedText, duration, updateSessionScore: true);
+    }
+
+    /// <summary>
+    /// Generate feedback based on voice analysis with option to update session score
+    /// </summary>
+    public FeedbackMessage GenerateFeedback(string transcribedText, float duration, bool updateSessionScore)
+    {
         // Start timing
         float startTime = Time.realtimeSinceStartup;
 
@@ -263,6 +285,12 @@ public class FeedbackManager : MonoBehaviour
         if (trackPerformance)
         {
             UpdateHistory(currentPerformance, action);
+        }
+
+        // Update session score tracking only if requested
+        if (updateSessionScore)
+        {
+            UpdateSessionScore(currentPerformance);
         }
 
         lastPerformance = currentPerformance;
@@ -525,12 +553,54 @@ public class FeedbackManager : MonoBehaviour
                 dqnInferenceTimes.Count, ppoInferenceTimes.Count);
     }
 
+    /// <summary>
+    /// Update session score totals with current performance
+    /// </summary>
+    private void UpdateSessionScore(InterviewPerformance performance)
+    {
+        sessionConfidenceTotal += performance.confidence;
+        sessionClarityTotal += performance.clarity;
+        sessionPaceTotal += performance.pace;
+        sessionToneTotal += performance.tone;
+        sessionOverallTotal += performance.overall;
+        sessionQuestionCount++;
+
+        if (verboseLogging)
+        {
+            Debug.Log($"Session Score Updated - Question {sessionQuestionCount}: Overall Avg = {SessionAverageOverall:F2}");
+        }
+    }
+
+    /// <summary>
+    /// Manually update session score with a specific performance (used when player chooses feedback)
+    /// </summary>
+    public void RecordPerformanceScore(InterviewPerformance performance)
+    {
+        UpdateSessionScore(performance);
+    }
+
+    /// <summary>
+    /// Get detailed session score breakdown
+    /// </summary>
+    public (float avgConfidence, float avgClarity, float avgPace, float avgTone, float avgOverall, int questionCount) GetSessionScoreBreakdown()
+    {
+        return (SessionAverageConfidence, SessionAverageClarity, SessionAveragePace, 
+                SessionAverageTone, SessionAverageOverall, sessionQuestionCount);
+    }
+
     public void ResetSession()
     {
         performanceHistory.Clear();
         feedbackHistory.Clear();
-        currentQuestionIndex = 0;
         lastPerformance = new InterviewPerformance { overall = 0.5f };
+        
+        // Reset session scores
+        sessionConfidenceTotal = 0f;
+        sessionClarityTotal = 0f;
+        sessionPaceTotal = 0f;
+        sessionToneTotal = 0f;
+        sessionOverallTotal = 0f;
+        sessionQuestionCount = 0;
         
         Debug.Log("Feedback session reset");
     }
