@@ -118,14 +118,14 @@ public class FeedbackComparisonUI : MonoBehaviour
         PopulateFeedbackPanel(
             dqnTitle, dqnMessage, dqnPerformanceText,
             dqnConfidenceBar, dqnClarityBar, dqnPaceBar, dqnToneBar, dqnOverallBar,
-            currentDQNFeedback, "DQN"
+            currentDQNFeedback, "Feedback B"
         );
 
         // Populate PPO side
         PopulateFeedbackPanel(
             ppoTitle, ppoMessage, ppoPerformanceText,
             ppoConfidenceBar, ppoClarityBar, ppoPaceBar, ppoToneBar, ppoOverallBar,
-            currentPPOFeedback, "PPO"
+            currentPPOFeedback, "Feedback A"
         );
 
         // Enable buttons
@@ -148,7 +148,7 @@ public class FeedbackComparisonUI : MonoBehaviour
         string modelName)
     {
         if (title != null)
-            title.text = $"{modelName}: {feedback.title}";
+            title.text = $"{modelName}";
 
         if (message != null)
             message.text = feedback.message;
