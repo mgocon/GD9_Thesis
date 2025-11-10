@@ -4,17 +4,17 @@ using System.Collections;
 
 public class VoskDialogText : MonoBehaviour 
 {
-    public VoskSpeechToText VoskSpeechToText;  // Auto-linked to persistent one
-    public TextMeshProUGUI dialogueBox;        // Dialog box for displaying text
-    public TextMeshProUGUI speakerNameText;    // Optional: Text field for speaker name
-    public float typingSpeed = 0.05f;          // Speed of text appearing
+    public VoskSpeechToText VoskSpeechToText;
+    public TextMeshProUGUI dialogueBox;
+    public TextMeshProUGUI speakerNameText;
+    public float typingSpeed = 0.05f;
     
     private string currentText = "";
     private bool isTyping = false;
+    private bool isNewPhrase = true; // Track if this is a new phrase after silence timer
 
     void Awake()
     {
-        // Ask VoskManager for the speech-to-text instance
         if (VoskManager.Instance != null)
         {
             VoskSpeechToText = VoskManager.Instance.GetSpeechToText();
@@ -23,13 +23,18 @@ public class VoskDialogText : MonoBehaviour
         if (VoskSpeechToText != null)
         {
             VoskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
+            
+            // Subscribe to VoiceProcessor events
+            if (VoskSpeechToText.VoiceProcessor != null)
+            {
+                VoskSpeechToText.VoiceProcessor.OnRecordingStop += OnSilenceTimerComplete;
+            }
         }
         else
         {
             Debug.LogWarning("No VoskSpeechToText found. Did you place VoskManager in your persistent scene?");
         }
 
-        // Initialize text fields
         if (dialogueBox != null)
             dialogueBox.text = "";
     }
@@ -39,9 +44,19 @@ public class VoskDialogText : MonoBehaviour
         if (VoskSpeechToText != null)
         {
             VoskSpeechToText.OnTranscriptionResult -= OnTranscriptionResult;
+            
+            if (VoskSpeechToText.VoiceProcessor != null)
+            {
+                VoskSpeechToText.VoiceProcessor.OnRecordingStop -= OnSilenceTimerComplete;
+            }
         }
     }
 
+    private void OnSilenceTimerComplete()
+    {
+        Debug.Log("Silence timer completed - marking for new phrase");
+        isNewPhrase = true;
+    }
 
     private void OnTranscriptionResult(string obj)
     {
@@ -52,8 +67,17 @@ public class VoskDialogText : MonoBehaviour
         {
             if (!string.IsNullOrEmpty(phrase.Text))
             {
-                // Display the recognized speech in the dialogue box (without updating speaker name)
-                DisplayDialogue("", phrase.Text);
+                if (isNewPhrase)
+                {
+                    // Replace text after silence timer completion
+                    DisplayDialogue("", phrase.Text);
+                    isNewPhrase = false;
+                }
+                else
+                {
+                    // Append during short pauses
+                    AppendDialogue(phrase.Text);
+                }
                 return;
             }
         }
@@ -68,15 +92,38 @@ public class VoskDialogText : MonoBehaviour
             isTyping = false;
         }
 
-        // Start typing effect
-        StartCoroutine(TypeText(text));
+        // Start typing effect (replaces existing text)
+        StartCoroutine(TypeText(text, false));
     }
 
-    private IEnumerator TypeText(string text)
+    public void AppendDialogue(string text)
+    {
+        // Stop any existing typing coroutine
+        if (isTyping)
+        {
+            StopAllCoroutines();
+            isTyping = false;
+        }
+
+        // Add space before appending if there's already text
+        if (!string.IsNullOrEmpty(currentText))
+        {
+            text = " " + text;
+        }
+
+        // Start typing effect (appends to existing text)
+        StartCoroutine(TypeText(text, true));
+    }
+
+    private IEnumerator TypeText(string text, bool append)
     {
         isTyping = true;
-        currentText = "";
-        dialogueBox.text = "";
+        
+        if (!append)
+        {
+            currentText = "";
+            dialogueBox.text = "";
+        }
 
         foreach (char letter in text.ToCharArray())
         {

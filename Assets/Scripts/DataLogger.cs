@@ -19,6 +19,7 @@ public class DataLogger : MonoBehaviour
     private string currentAlgorithm = "";
     private string currentQuestion = "";
     private int currentSentenceIndex = 0;
+    private string accumulatedAnswer = ""; // ✅ Accumulate answers until silence timer
 
     // ✅ Keep memory of the most recent "real" level
     private string lastNonPersistentLevel = "";
@@ -70,10 +71,47 @@ public class DataLogger : MonoBehaviour
 
             // Listen to scene load events
             SceneManager.sceneLoaded += OnAnySceneLoaded;
+
+            // ✅ Subscribe to silence timer event
+            StartCoroutine(SubscribeToVoiceProcessor());
         }
         else
         {
             Destroy(gameObject);
+        }
+    }
+
+    // ✅ Subscribe to VoiceProcessor silence timer
+    private System.Collections.IEnumerator SubscribeToVoiceProcessor()
+    {
+        // Wait for VoskManager to initialize
+        while (VoskManager.Instance == null || VoskManager.Instance.GetSpeechToText() == null)
+        {
+            yield return null;
+        }
+
+        var voskSTT = VoskManager.Instance.GetSpeechToText();
+        if (voskSTT?.VoiceProcessor != null)
+        {
+            voskSTT.VoiceProcessor.OnRecordingStop += OnSilenceTimerComplete;
+            Debug.Log("✅ DataLogger subscribed to silence timer");
+        }
+    }
+
+    // ✅ When silence timer completes, save accumulated answer
+    private void OnSilenceTimerComplete()
+    {
+        if (!ShouldLogCurrentScene())
+        {
+            accumulatedAnswer = "";
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(accumulatedAnswer))
+        {
+            SaveAccumulatedAnswer();
+            accumulatedAnswer = ""; // Reset for next phrase
+            Debug.Log("🔄 Silence timer complete - answer saved and reset");
         }
     }
 
@@ -251,10 +289,13 @@ public class DataLogger : MonoBehaviour
 
             WriteAllDataToFile();
         }
+
+        // ✅ Reset accumulated answer when new question starts
+        accumulatedAnswer = "";
     }
 
-    // --- PLAYER ANSWER LOGGING ---
-    public void LogAnswer(string playerAnswer)
+    // --- PLAYER ANSWER LOGGING (Accumulation) ---
+    public void LogAnswer(string partialAnswer)
     {
         // ✅ Skip logging if in Tutorial
         if (!ShouldLogCurrentScene())
@@ -263,6 +304,19 @@ public class DataLogger : MonoBehaviour
             return;
         }
 
+        // ✅ Accumulate the answer instead of replacing
+        if (!string.IsNullOrEmpty(accumulatedAnswer))
+        {
+            accumulatedAnswer += " ";
+        }
+        accumulatedAnswer += partialAnswer;
+
+        Debug.Log($"🎙 Accumulated answer: {accumulatedAnswer}");
+    }
+
+    // ✅ Save the complete accumulated answer to CSV
+    private void SaveAccumulatedAnswer()
+    {
         string timestamp = DateTime.Now.ToString("s");
         string sceneName = SceneManager.GetActiveScene().name;
 
@@ -272,7 +326,6 @@ public class DataLogger : MonoBehaviour
 
         lock (dataLock)
         {
-            // ✅ Find and update existing row
             var existingRow = csvData.FirstOrDefault(r => 
                 r.Question == currentQuestion && 
                 r.SentenceIndex == currentSentenceIndex &&
@@ -280,13 +333,12 @@ public class DataLogger : MonoBehaviour
 
             if (existingRow != null)
             {
-                existingRow.PlayerAnswer = playerAnswer;
+                existingRow.PlayerAnswer = accumulatedAnswer;
                 existingRow.Timestamp = timestamp;
-                Debug.Log($"🔄 Updated answer for question: {currentQuestion}");
+                Debug.Log($"💾 Saved complete answer for question: {currentQuestion}");
             }
             else
             {
-                // Create new row if question doesn't exist
                 csvData.Add(new CsvRow
                 {
                     Timestamp = timestamp,
@@ -294,16 +346,14 @@ public class DataLogger : MonoBehaviour
                     Algorithm = currentAlgorithm,
                     SceneName = sceneName,
                     Question = currentQuestion,
-                    PlayerAnswer = playerAnswer,
+                    PlayerAnswer = accumulatedAnswer,
                     SentenceIndex = currentSentenceIndex
                 });
-                Debug.Log($"➕ Added new row with answer: {playerAnswer}");
+                Debug.Log($"➕ Added new row with complete answer: {accumulatedAnswer}");
             }
 
             WriteAllDataToFile();
         }
-
-        Debug.Log($"🎙 Logged answer: {playerAnswer}");
     }
 
     // ✅ Write all data to file (replaces entire file)
@@ -367,5 +417,11 @@ public class DataLogger : MonoBehaviour
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnAnySceneLoaded;
+        
+        // Unsubscribe from voice processor
+        if (VoskManager.Instance?.GetSpeechToText()?.VoiceProcessor != null)
+        {
+            VoskManager.Instance.GetSpeechToText().VoiceProcessor.OnRecordingStop -= OnSilenceTimerComplete;
+        }
     }
 }
