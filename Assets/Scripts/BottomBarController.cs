@@ -61,6 +61,9 @@ public class BottomBarController : MonoBehaviour
 
     private enum State { PLAYING, COMPLETED }
 
+    // Store last generated feedbacks for comparison so we can record the chosen one later
+    private FeedbackMessage lastDQNFeedback;
+    private FeedbackMessage lastPPOFeedback;
     public void PlayScene(StoryScene scene)
     {
         currentScene = scene;
@@ -116,6 +119,15 @@ public class BottomBarController : MonoBehaviour
 
     private IEnumerator TypeText(string text)
     {
+        // Ensure TMP settings prevent visible overflow: enable wrapping and use ellipsis overflow
+        if (barText != null)
+        {
+            barText.enableWordWrapping = true;
+            barText.overflowMode = TMPro.TextOverflowModes.Ellipsis;
+            // Disable auto-sizing here to keep layout predictable during typewriter effect
+            barText.enableAutoSizing = false;
+        }
+
         barText.text = "";
         state = State.PLAYING;
         int wordIndex = 0;
@@ -123,6 +135,24 @@ public class BottomBarController : MonoBehaviour
         while (state != State.COMPLETED)
         {
             barText.text += text[wordIndex];
+            // Safeguard: if the new text exceeds the rect, truncate and finish
+            if (barText != null)
+            {
+                Vector2 pref = barText.GetPreferredValues(barText.text);
+                float height = barText.rectTransform.rect.height;
+                if (pref.y > height)
+                {
+                    // Trim characters until it fits, then add ellipsis
+                    string current = barText.text;
+                    while (current.Length > 1 && barText.GetPreferredValues(current + "…").y > height)
+                    {
+                        current = current.Substring(0, current.Length - 1);
+                    }
+                    barText.text = current + "…";
+                    state = State.COMPLETED;
+                    break;
+                }
+            }
             yield return new WaitForSeconds(0.05f);
             if (++wordIndex == text.Length)
             {
@@ -444,18 +474,26 @@ public class BottomBarController : MonoBehaviour
         // Player chose DQN feedback (after seeing both)
         DataLogger.Instance?.LogAlgorithmChoice("DQN");
         algorithmChosen = true;
-        
+
         Debug.Log("✅ Player chose DQN feedback");
-        
+
+        // Record the chosen model's performance into FeedbackManager once
+        if (feedbackManager != null && lastDQNFeedback != null && lastDQNFeedback.currentPerformance != null)
+        {
+            feedbackManager.RecordDQNScore(lastDQNFeedback.currentPerformance);
+            feedbackManager.RecordPerformanceScore(lastDQNFeedback.currentPerformance);
+            Debug.Log("Recorded DQN and session performance for chosen feedback.");
+        }
+
         // Hide comparison panel
         if (feedbackComparisonUI != null)
         {
             feedbackComparisonUI.HideComparison();
         }
-        
+
         // Hide speak image and popup boxes after choice
         HideUIAfterAlgorithmChoice();
-        
+
         // Advance to next question
         var gc = FindObjectOfType<GameController>();
         if (gc != null)
@@ -474,18 +512,26 @@ public class BottomBarController : MonoBehaviour
         // Player chose PPO feedback (after seeing both)
         DataLogger.Instance?.LogAlgorithmChoice("PPO");
         algorithmChosen = true;
-        
+
         Debug.Log("✅ Player chose PPO feedback");
-        
+
+        // Record the chosen model's performance into FeedbackManager once
+        if (feedbackManager != null && lastPPOFeedback != null && lastPPOFeedback.currentPerformance != null)
+        {
+            feedbackManager.RecordPPOScore(lastPPOFeedback.currentPerformance);
+            feedbackManager.RecordPerformanceScore(lastPPOFeedback.currentPerformance);
+            Debug.Log("Recorded PPO and session performance for chosen feedback.");
+        }
+
         // Hide comparison panel
         if (feedbackComparisonUI != null)
         {
             feedbackComparisonUI.HideComparison();
         }
-        
+
         // Hide speak image and popup boxes after choice
         HideUIAfterAlgorithmChoice();
-        
+
         // Advance to next question
         var gc = FindObjectOfType<GameController>();
         if (gc != null)
@@ -511,6 +557,21 @@ public class BottomBarController : MonoBehaviour
         if (feedbackComparisonUI != null)
         {
             feedbackComparisonUI.HideComparison();
+        }
+
+        // If both feedbacks exist, record an average performance for the session (no algorithm-specific tally)
+        if (feedbackManager != null && lastDQNFeedback != null && lastPPOFeedback != null &&
+            lastDQNFeedback.currentPerformance != null && lastPPOFeedback.currentPerformance != null)
+        {
+            InterviewPerformance avg = new InterviewPerformance();
+            avg.confidence = (lastDQNFeedback.currentPerformance.confidence + lastPPOFeedback.currentPerformance.confidence) / 2f;
+            avg.clarity = (lastDQNFeedback.currentPerformance.clarity + lastPPOFeedback.currentPerformance.clarity) / 2f;
+            avg.pace = (lastDQNFeedback.currentPerformance.pace + lastPPOFeedback.currentPerformance.pace) / 2f;
+            avg.tone = (lastDQNFeedback.currentPerformance.tone + lastPPOFeedback.currentPerformance.tone) / 2f;
+            avg.overall = (lastDQNFeedback.currentPerformance.overall + lastPPOFeedback.currentPerformance.overall) / 2f;
+
+            feedbackManager.RecordPerformanceScore(avg);
+            Debug.Log("Recorded averaged session performance for 'Neither' choice.");
         }
 
         // Hide speak image and popup boxes after choice
@@ -586,19 +647,19 @@ public class BottomBarController : MonoBehaviour
         // Calculate response duration
         float responseDuration = Time.time - responseStartTime;
 
-        // Generate DQN feedback
-        feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
-        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+    // Generate DQN feedback WITHOUT updating session totals (we'll record when player chooses)
+    feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
+    lastDQNFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
 
-        // Generate PPO feedback
-        feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
-        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+    // Generate PPO feedback WITHOUT updating session totals
+    feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
+    lastPPOFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
 
         // Display BOTH for comparison
-        if (dqnFeedback != null && ppoFeedback != null && feedbackComparisonUI != null)
+        if (lastDQNFeedback != null && lastPPOFeedback != null && feedbackComparisonUI != null)
         {
-            feedbackComparisonUI.ShowComparison(dqnFeedback, ppoFeedback);
-            Debug.Log($"📊 Showing feedback comparison - DQN: {dqnFeedback.action} vs PPO: {ppoFeedback.action}");
+            feedbackComparisonUI.ShowComparison(lastDQNFeedback, lastPPOFeedback);
+            Debug.Log($"📊 Showing feedback comparison - DQN: {lastDQNFeedback.action} vs PPO: {lastPPOFeedback.action}");
         }
     }
 
