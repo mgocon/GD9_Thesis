@@ -63,9 +63,12 @@ public class GameController : MonoBehaviour
 
         if (bottomBar.IsLastSentence())
         {
+            Debug.Log($"Last sentence reached. currentScene.nextScene = {(currentScene.nextScene == null ? "NULL" : currentScene.nextScene.name)}");
+            
             // If there is no next scene, show the end-of-level popup
             if (currentScene.nextScene == null)
             {
+                Debug.Log("No next scene - calling ShowEndPopup()");
                 if (bottomBar != null)
                 {
                     bottomBar.ShowEndPopup();

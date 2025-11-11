@@ -109,7 +109,7 @@ public class VoiceProcessor : MonoBehaviour
     private bool _audioDetected;
     private bool _didDetect;
     private bool _transmit;
-
+    private List<short[]> _bufferedFrames = new List<short[]>(); // Buffer to store frames
 
     AudioClip _audioClip;
     private event Action RestartRecording;
@@ -264,17 +264,14 @@ public class VoiceProcessor : MonoBehaviour
             if (endReadPos > _audioClip.samples)
             {
                 // fragmented read (wraps around to beginning of clip)
-                // read bit at end of clip
                 int numSamplesClipEnd = _audioClip.samples - startReadPos;
                 float[] endClipSamples = new float[numSamplesClipEnd];
                 _audioClip.GetData(endClipSamples, startReadPos);
 
-                // read bit at start of clip
                 int numSamplesClipStart = endReadPos - _audioClip.samples;
                 float[] startClipSamples = new float[numSamplesClipStart];
                 _audioClip.GetData(startClipSamples, 0);
 
-                // combine to form full frame
                 Buffer.BlockCopy(endClipSamples, 0, sampleBuffer, 0, numSamplesClipEnd);
                 Buffer.BlockCopy(startClipSamples, 0, sampleBuffer, numSamplesClipEnd, numSamplesClipStart);
             }
@@ -284,9 +281,21 @@ public class VoiceProcessor : MonoBehaviour
             }
 
             startReadPos = endReadPos % _audioClip.samples;
+            
+            // Convert to PCM
+            short[] pcmBuffer = new short[sampleBuffer.Length];
+            for (int i = 0; i < FrameLength; i++)
+            {
+                pcmBuffer[i] = (short) Math.Floor(sampleBuffer[i] * short.MaxValue);
+            }
+            
             if (_autoDetect == false)
             {
-                _transmit =_audioDetected = true;
+                _audioDetected = true;
+                
+                // Send frames immediately when auto-detect is off
+                if (OnFrameCaptured != null)
+                    OnFrameCaptured.Invoke(pcmBuffer);
             }
             else
             {
@@ -302,45 +311,46 @@ public class VoiceProcessor : MonoBehaviour
 
                 if (maxVolume >= _minimumSpeakingSampleValue)
                 {
-                    _transmit= _audioDetected = true;
+                    // Speech detected
+                    if (!_audioDetected)
+                    {
+                        _audioDetected = true;
+                        _didDetect = true;
+                    }
+                    
+                    // Send frame immediately
+                    if (OnFrameCaptured != null)
+                        OnFrameCaptured.Invoke(pcmBuffer);
+                    
                     _timeAtSilenceBegan = Time.time;
                 }
                 else
                 {
-                    _transmit = false;
-
-                    if (_audioDetected && Time.time - _timeAtSilenceBegan > _silenceTimer)
+                    // No speech detected - still send frames for continuous recognition
+                    if (_audioDetected)
                     {
-                        _audioDetected = false;
+                        // Send frame even during silence
+                        if (OnFrameCaptured != null)
+                            OnFrameCaptured.Invoke(pcmBuffer);
+                        
+                        // Check if silence timer has elapsed
+                        if (Time.time - _timeAtSilenceBegan > _silenceTimer)
+                        {
+                            Debug.Log($"Silence timer complete ({_silenceTimer}s)");
+                            
+                            // Trigger recording stop - this signals end of phrase
+                            if (OnRecordingStop != null)
+                                OnRecordingStop.Invoke();
+                            
+
+                            // Reset state for next phrase
+                            _audioDetected = false;
+                            _didDetect = false;
+                        }
                     }
                 }
             }
-
-            if (_audioDetected)
-            {
-                _didDetect = true;
-                // converts to 16-bit int samples
-                short[] pcmBuffer = new short[sampleBuffer.Length];
-                for (int i = 0; i < FrameLength; i++)
-                {
-                    pcmBuffer[i] = (short) Math.Floor(sampleBuffer[i] * short.MaxValue);
-                }
-
-                // raise buffer event
-                if (OnFrameCaptured != null && _transmit)
-                    OnFrameCaptured.Invoke(pcmBuffer);
-            }
-            else
-            {
-                if (_didDetect)
-                {
-                    if (OnRecordingStop != null)
-                        OnRecordingStop.Invoke();
-                    _didDetect = false;
-                }
-            }
         }
-
 
         if (OnRecordingStop != null)
             OnRecordingStop.Invoke();
