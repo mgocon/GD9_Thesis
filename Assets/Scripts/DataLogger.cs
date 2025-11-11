@@ -19,6 +19,7 @@ public class DataLogger : MonoBehaviour
     private string currentAlgorithm = "";
     private string currentQuestion = "";
     private int currentSentenceIndex = 0;
+    private string accumulatedAnswer = ""; // ✅ Accumulate answers until silence timer
 
     // ✅ Keep memory of the most recent "real" level
     private string lastNonPersistentLevel = "";
@@ -70,10 +71,47 @@ public class DataLogger : MonoBehaviour
 
             // Listen to scene load events
             SceneManager.sceneLoaded += OnAnySceneLoaded;
+
+            // ✅ Subscribe to silence timer event
+            StartCoroutine(SubscribeToVoiceProcessor());
         }
         else
         {
             Destroy(gameObject);
+        }
+    }
+
+    // ✅ Subscribe to VoiceProcessor silence timer
+    private System.Collections.IEnumerator SubscribeToVoiceProcessor()
+    {
+        // Wait for VoskManager to initialize
+        while (VoskManager.Instance == null || VoskManager.Instance.GetSpeechToText() == null)
+        {
+            yield return null;
+        }
+
+        var voskSTT = VoskManager.Instance.GetSpeechToText();
+        if (voskSTT?.VoiceProcessor != null)
+        {
+            voskSTT.VoiceProcessor.OnRecordingStop += OnSilenceTimerComplete;
+            Debug.Log("✅ DataLogger subscribed to silence timer");
+        }
+    }
+
+    // ✅ When silence timer completes, save accumulated answer
+    private void OnSilenceTimerComplete()
+    {
+        if (!ShouldLogCurrentScene())
+        {
+            accumulatedAnswer = "";
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(accumulatedAnswer))
+        {
+            SaveAccumulatedAnswer();
+            accumulatedAnswer = ""; // Reset for next phrase
+            Debug.Log("🔄 Silence timer complete - answer saved and reset");
         }
     }
 
@@ -101,137 +139,66 @@ public class DataLogger : MonoBehaviour
         }
     }
 
-    // ✅ Load existing CSV data into memory (keeping this for potential future use)
-    private void LoadExistingData()
-    {
-        lock (dataLock)
-        {
-            csvData.Clear();
-            try
-            {
-                var lines = File.ReadAllLines(fullPath, Encoding.UTF8);
-                for (int i = 1; i < lines.Length; i++) // Skip header
-                {
-                    var row = ParseCsvLine(lines[i]);
-                    if (row != null)
-                        csvData.Add(row);
-                }
-                Debug.Log($"📥 Loaded {csvData.Count} existing rows from CSV");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to load existing CSV data: {ex.Message}");
-            }
-        }
-    }
-
-    // ✅ Parse a CSV line into a CsvRow object
-    private CsvRow ParseCsvLine(string line)
-    {
-        try
-        {
-            var values = SplitCsvLine(line);
-            if (values.Length < 7) return null;
-
-            return new CsvRow
-            {
-                Timestamp = values[0],
-                LevelName = values[1],
-                Algorithm = values[2],
-                SceneName = values[3],
-                Question = values[4],
-                PlayerAnswer = values[5],
-                SentenceIndex = int.TryParse(values[6], out int idx) ? idx : -1
-            };
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // ✅ Split CSV line respecting quoted fields
-    private string[] SplitCsvLine(string line)
-    {
-        var result = new List<string>();
-        var current = new StringBuilder();
-        bool inQuotes = false;
-
-        for (int i = 0; i < line.Length; i++)
-        {
-            char c = line[i];
-
-            if (c == '"')
-            {
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    current.Append('"');
-                    i++; // skip next quote
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                result.Add(current.ToString());
-                current.Clear();
-            }
-            else
-            {
-                current.Append(c);
-            }
-        }
-        result.Add(current.ToString());
-        return result.ToArray();
-    }
-
     // --- AUTO-DETECT SCENE CHANGE ---
     private void OnAnySceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        int index = scene.buildIndex;
-        string levelLabel = GetLevelNameFromIndex(index);
+        string sceneName = scene.name;
+        string levelLabel = GetLevelNameFromSceneName(sceneName);
 
-        if (index != 0)
+        // Only update if it's not Persistent Scene or Main Menu
+        if (levelLabel != "Persistent Scene" && levelLabel != "Main Menu")
         {
             currentLevelName = levelLabel;
             lastNonPersistentLevel = levelLabel;
+            Debug.Log($"📘 Scene loaded '{sceneName}' → Level set as {currentLevelName}");
         }
-
-        Debug.Log($"📘 Scene loaded '{scene.name}' (index {index}) → Level set as {currentLevelName}");
+        else
+        {
+            Debug.Log($"📘 Scene loaded '{sceneName}' (ignored for level tracking)");
+        }
     }
 
-    // --- SCENE INDEX TO FRIENDLY NAME ---
-    private string GetLevelNameFromIndex(int index)
+    // --- SCENE NAME TO FRIENDLY NAME ---
+    private string GetLevelNameFromSceneName(string sceneName)
     {
-        return index switch
+        // Match by scene name instead of build index
+        return sceneName switch
         {
-            1 => "Main Menu",
-            2 => "Tutorial Level",
-            3 => "Entry Level",
-            4 => "Senior Level",
-            0 => "Persistent Scene",
-            _ => "Unknown Scene"
+            "Persistent Scene" => "Persistent Scene",
+            "MAIN_MENU" => "Main Menu",
+            "Tutorial Scene" => "Tutorial Level",
+            "Tutorial" => "Tutorial Level",
+            "TutorialScene" => "Tutorial Level",
+            "Entry Level" => "Entry Level",
+            "EntryLevel" => "Entry Level",
+            "Senior Level" => "Senior Level",
+            "SeniorLevel" => "Senior Level",
+            _ => sceneName // Use actual scene name if no mapping found
         };
     }
 
-    // --- MANUAL OVERRIDE ---
-    public void SetCurrentLevel(string levelName)
+    // ✅ Helper method to check if current scene should be logged
+    private bool ShouldLogCurrentScene()
     {
-        currentLevelName = levelName ?? "";
-        if (!string.IsNullOrEmpty(levelName) && levelName != "Persistent Scene")
-            lastNonPersistentLevel = levelName;
-
-        Debug.Log($"📘 Level manually set: {currentLevelName}");
+        // Check the lastNonPersistentLevel instead of current active scene
+        // This way we log based on the actual gameplay level, not the persistent scene
+        return lastNonPersistentLevel != "Tutorial Level" && 
+               !string.IsNullOrEmpty(lastNonPersistentLevel);
     }
 
     // --- ALGORITHM CHOICE ---
     public void LogAlgorithmChoice(string algorithm)
     {
+        // ✅ Skip logging if in Tutorial
+        if (!ShouldLogCurrentScene())
+        {
+            Debug.Log("⏭ Skipping algorithm log - Tutorial scene");
+            return;
+        }
+
         currentAlgorithm = algorithm ?? "";
 
-        string effectiveLevel = (currentLevelName == "Persistent Scene" || string.IsNullOrEmpty(currentLevelName))
+        string effectiveLevel = string.IsNullOrEmpty(currentLevelName) || currentLevelName == "Persistent Scene" || currentLevelName == "Main Menu"
             ? lastNonPersistentLevel
             : currentLevelName;
 
@@ -274,13 +241,20 @@ public class DataLogger : MonoBehaviour
     // --- QUESTION/DIALOGUE LOGGING ---
     public void LogSentence(string question, int sentenceIndex)
     {
+        // ✅ Skip logging if in Tutorial
+        if (!ShouldLogCurrentScene())
+        {
+            Debug.Log("⏭ Skipping question log - Tutorial scene");
+            return;
+        }
+
         currentQuestion = question ?? "";
         currentSentenceIndex = sentenceIndex;
 
         string timestamp = DateTime.Now.ToString("s");
         string sceneName = SceneManager.GetActiveScene().name;
 
-        string effectiveLevel = (currentLevelName == "Persistent Scene" || string.IsNullOrEmpty(currentLevelName))
+        string effectiveLevel = string.IsNullOrEmpty(currentLevelName) || currentLevelName == "Persistent Scene" || currentLevelName == "Main Menu"
             ? lastNonPersistentLevel
             : currentLevelName;
 
@@ -315,21 +289,43 @@ public class DataLogger : MonoBehaviour
 
             WriteAllDataToFile();
         }
+
+        // ✅ Reset accumulated answer when new question starts
+        accumulatedAnswer = "";
     }
 
-    // --- PLAYER ANSWER LOGGING ---
-    public void LogAnswer(string playerAnswer)
+    // --- PLAYER ANSWER LOGGING (Accumulation) ---
+    public void LogAnswer(string partialAnswer)
+    {
+        // ✅ Skip logging if in Tutorial
+        if (!ShouldLogCurrentScene())
+        {
+            Debug.Log("⏭ Skipping answer log - Tutorial scene");
+            return;
+        }
+
+        // ✅ Accumulate the answer instead of replacing
+        if (!string.IsNullOrEmpty(accumulatedAnswer))
+        {
+            accumulatedAnswer += " ";
+        }
+        accumulatedAnswer += partialAnswer;
+
+        Debug.Log($"🎙 Accumulated answer: {accumulatedAnswer}");
+    }
+
+    // ✅ Save the complete accumulated answer to CSV
+    private void SaveAccumulatedAnswer()
     {
         string timestamp = DateTime.Now.ToString("s");
         string sceneName = SceneManager.GetActiveScene().name;
 
-        string effectiveLevel = (currentLevelName == "Persistent Scene" || string.IsNullOrEmpty(currentLevelName))
+        string effectiveLevel = string.IsNullOrEmpty(currentLevelName) || currentLevelName == "Persistent Scene" || currentLevelName == "Main Menu"
             ? lastNonPersistentLevel
             : currentLevelName;
 
         lock (dataLock)
         {
-            // ✅ Find and update existing row
             var existingRow = csvData.FirstOrDefault(r => 
                 r.Question == currentQuestion && 
                 r.SentenceIndex == currentSentenceIndex &&
@@ -337,13 +333,12 @@ public class DataLogger : MonoBehaviour
 
             if (existingRow != null)
             {
-                existingRow.PlayerAnswer = playerAnswer;
+                existingRow.PlayerAnswer = accumulatedAnswer;
                 existingRow.Timestamp = timestamp;
-                Debug.Log($"🔄 Updated answer for question: {currentQuestion}");
+                Debug.Log($"💾 Saved complete answer for question: {currentQuestion}");
             }
             else
             {
-                // Create new row if question doesn't exist
                 csvData.Add(new CsvRow
                 {
                     Timestamp = timestamp,
@@ -351,16 +346,14 @@ public class DataLogger : MonoBehaviour
                     Algorithm = currentAlgorithm,
                     SceneName = sceneName,
                     Question = currentQuestion,
-                    PlayerAnswer = playerAnswer,
+                    PlayerAnswer = accumulatedAnswer,
                     SentenceIndex = currentSentenceIndex
                 });
-                Debug.Log($"➕ Added new row with answer: {playerAnswer}");
+                Debug.Log($"➕ Added new row with complete answer: {accumulatedAnswer}");
             }
 
             WriteAllDataToFile();
         }
-
-        Debug.Log($"🎙 Logged answer: {playerAnswer}");
     }
 
     // ✅ Write all data to file (replaces entire file)
@@ -419,5 +412,16 @@ public class DataLogger : MonoBehaviour
     private void OnApplicationQuit()
     {
         SaveCSV();
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnAnySceneLoaded;
+        
+        // Unsubscribe from voice processor
+        if (VoskManager.Instance?.GetSpeechToText()?.VoiceProcessor != null)
+        {
+            VoskManager.Instance.GetSpeechToText().VoiceProcessor.OnRecordingStop -= OnSilenceTimerComplete;
+        }
     }
 }

@@ -324,8 +324,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   selectedDevice: Microphone (USB Condenser Microphone)
   _minimumSpeakingSampleValue: 0.1
-  _silenceTimer: 2.5
-  _autoDetect: 0
+  _silenceTimer: 10
+  _autoDetect: 1
 --- !u!114 &450954872
 MonoBehaviour:
   m_ObjectHideFlags: 0

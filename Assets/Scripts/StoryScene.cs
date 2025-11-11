@@ -19,6 +19,7 @@ public class StoryScene : ScriptableObject
     {
         public String text;
         public Speaker speaker;
-
+        [Tooltip("Mark this as true if this sentence is a question that requires an algorithm choice (PPO/DQN)")]
+        public bool isQuestion;
     }
 }
