@@ -256,6 +256,9 @@ public class BottomBarController : MonoBehaviour
     {
         // If Vosk dialog text is empty, do not allow Done to proceed
         var voskDialog = FindObjectOfType<VoskDialogText>();
+        
+        // --- THIS IS THE FIX ---
+        // Was: if (voskDialog != null && (voskDialog.dialogueBox == null || string.IsNullOrWhiteSpace(vosKDialog.dialogueBox.text)))
         if (voskDialog != null && (voskDialog.dialogueBox == null || string.IsNullOrWhiteSpace(voskDialog.dialogueBox.text)))
         {
             Debug.LogWarning("Done is disabled until there is recognized speech in the dialog.");
@@ -327,6 +330,10 @@ public class BottomBarController : MonoBehaviour
     {
         Debug.Log("=== ShowEndPopup() called ===");
         
+        // --- NEW: Log summary data BEFORE showing the screen ---
+        DataLogger.Instance?.LogLevelSummary();
+        // --- End of new code ---
+
         // Show the game summary screen first
         if (gameSummaryScreen != null)
         {
@@ -667,6 +674,10 @@ public class BottomBarController : MonoBehaviour
     // Generate PPO feedback WITHOUT updating session totals
     feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
     lastPPOFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
+
+        // --- NEW: Log feedback scores to data logger ---
+        DataLogger.Instance?.LogFeedbackScores(lastDQNFeedback, lastPPOFeedback);
+        // --- End of new code ---
 
         // Display BOTH for comparison
         if (lastDQNFeedback != null && lastPPOFeedback != null && feedbackComparisonUI != null)

@@ -322,9 +322,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5e58a26d2cd7434ca7f678f9c724e29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  selectedDevice: Microphone (USB Condenser Microphone)
+  selectedDevice: 
   _minimumSpeakingSampleValue: 0.1
-  _silenceTimer: 10
+  _silenceTimer: 5
   _autoDetect: 1
 --- !u!114 &450954872
 MonoBehaviour:
