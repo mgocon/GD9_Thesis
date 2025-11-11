@@ -119,15 +119,6 @@ public class BottomBarController : MonoBehaviour
 
     private IEnumerator TypeText(string text)
     {
-        // Ensure TMP settings prevent visible overflow: enable wrapping and use ellipsis overflow
-        if (barText != null)
-        {
-            barText.enableWordWrapping = true;
-            barText.overflowMode = TMPro.TextOverflowModes.Ellipsis;
-            // Disable auto-sizing here to keep layout predictable during typewriter effect
-            barText.enableAutoSizing = false;
-        }
-
         barText.text = "";
         state = State.PLAYING;
         int wordIndex = 0;
@@ -135,24 +126,6 @@ public class BottomBarController : MonoBehaviour
         while (state != State.COMPLETED)
         {
             barText.text += text[wordIndex];
-            // Safeguard: if the new text exceeds the rect, truncate and finish
-            if (barText != null)
-            {
-                Vector2 pref = barText.GetPreferredValues(barText.text);
-                float height = barText.rectTransform.rect.height;
-                if (pref.y > height)
-                {
-                    // Trim characters until it fits, then add ellipsis
-                    string current = barText.text;
-                    while (current.Length > 1 && barText.GetPreferredValues(current + "…").y > height)
-                    {
-                        current = current.Substring(0, current.Length - 1);
-                    }
-                    barText.text = current + "…";
-                    state = State.COMPLETED;
-                    break;
-                }
-            }
             yield return new WaitForSeconds(0.05f);
             if (++wordIndex == text.Length)
             {
