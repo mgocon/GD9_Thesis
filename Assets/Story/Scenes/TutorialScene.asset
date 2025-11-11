@@ -13,11 +13,35 @@ MonoBehaviour:
   m_Name: TutorialScene
   m_EditorClassIdentifier: 
   sentences:
-  - text: Welcome to the tutorial.
+  - text: Welcome to the tutorial. (Press Spacebar)
     speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+    isQuestion: 0
   - text: We will ask you a few questions regarding your interview here with us.
     speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
-  - text: When you are ready to speak, click on mic button to start speaking.
+    isQuestion: 0
+  - text: Before we start, please make sure that you are in a quiet environment to
+      ensure a realistic interview experience.
     speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+    isQuestion: 0
+  - text: There will be some inaccuracies to the speech to text. However, everything
+      is still functional do not worry.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+    isQuestion: 0
+  - text: We will give you a question which you will answer. Furthermore, we will
+      ask you which of the two algorithms (choices) is the most accurate to you.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+    isQuestion: 0
+  - text: When you are ready to speak, just click on the microphone button when questioned.
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+    isQuestion: 0
+  - text: Let's start with your name, what is your name?
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+    isQuestion: 1
+  - text: Great, we are all done. Proceed to the different interviews we have in
+      store for you. Have a great day!
+    speaker: {fileID: 11400000, guid: 39ea62850134e71418b9a65edc460629, type: 2}
+    isQuestion: 0
+  randomizeSentences: 0
+  sentencesToUse: 0
   background: {fileID: 21300000, guid: b268aff5685f814489f73e99c9c798f0, type: 3}
-  nextScene: {fileID: 11400000, guid: bae3aea15af108249b871ee95458afaf, type: 2}
+  nextScene: {fileID: 0}
