@@ -51,38 +51,27 @@ public class InterviewPerformance
 }
 
 /// <summary>
-/// Feedback action types that match the trained models
+/// Feedback action types - focused on speech-measurable metrics only
 /// </summary>
 public enum FeedbackAction
 {
-    // Core Communication
-    EncourageConfidence = 0,      // Boost confidence
-    ImproveSpeechPace = 1,        // Adjust speaking speed
-    EnhanceClarity = 2,           // Improve articulation
-    OptimizeTone = 3,             // Better emotional tone
-    ReduceNervousness = 4,        // Calm anxiety
+    // Speech Rate & Pace
+    ImproveSpeechPace = 0,        // Adjust speaking speed
+    SlowDownPacing = 1,           // Speaking too fast
+    SpeedUpPacing = 2,            // Speaking too slow
     
-    // Advanced Communication
-    ImproveBodyLanguage = 5,      // Posture, gestures, presence
-    AddMoreDetails = 6,           // Provide specific examples
-    BeMoreConcise = 7,            // Reduce rambling
-    ShowMoreEnthusiasm = 8,       // Energy and passion
-    StructureAnswersBetter = 9,   // Use STAR method
+    // Confidence
+    EncourageConfidence = 3,      // Boost vocal confidence
+    ReduceNervousness = 4,        // Calm anxiety (affects pace + tone)
     
-    // Professional Skills
-    HighlightAchievements = 10,   // Emphasize accomplishments
-    DemonstrateLeadership = 11,   // Show leadership qualities
-    ShowProblemSolving = 12,      // Display analytical skills
-    ExpressCuriosity = 13,        // Ask thoughtful questions
+    // Tone Patterns
+    ImproveVocalVariety = 5,      // More dynamic tone patterns
+    OptimizeTone = 6,             // Better emotional tone
+    AddEnthusiasm = 7,            // More energy in voice
     
-    // Interpersonal
-    BuildRapport = 14,            // Connect with interviewer
-    ListenMoreActively = 15,      // Better engagement
-    MatchInterviewerEnergy = 16,  // Mirror communication style
-    
-    // Positive Feedback
-    MaintainCurrentApproach = 17, // Keep doing what you're doing
-    ExcellentPerformance = 18     // Outstanding work
+    // Overall
+    MaintainCurrentApproach = 8,  // Keep doing what you're doing
+    ExcellentPerformance = 9      // Outstanding work
 }
 
 /// <summary>
@@ -97,6 +86,9 @@ public class FeedbackMessage
     public float confidence;  // Model confidence in this feedback (0-1)
     public InterviewPerformance currentPerformance;
     public InterviewPerformance expectedImprovement;
+
+    // Configuration for message generation
+    public static bool UseGenericFeedback = true;  // Toggle between generic and interview-specific feedback
 
     public static FeedbackMessage Create(FeedbackAction action, float confidence, 
         InterviewPerformance current, InterviewPerformance improvement)
@@ -113,18 +105,23 @@ public class FeedbackMessage
         switch (action)
         {
             case FeedbackAction.EncourageConfidence:
-                feedback.title = "Build Your Confidence";
+                feedback.title = UseGenericFeedback ? "Improve Confidence" : "Build Your Confidence";
                 feedback.message = GenerateConfidenceMessage(current);
                 break;
 
             case FeedbackAction.ImproveSpeechPace:
-                feedback.title = "Adjust Your Pace";
+                feedback.title = UseGenericFeedback ? "Adjust Pace" : "Adjust Your Pace";
                 feedback.message = GeneratePaceMessage(current);
                 break;
-
-            case FeedbackAction.EnhanceClarity:
-                feedback.title = "Improve Clarity";
-                feedback.message = GenerateClarityMessage(current);
+                
+            case FeedbackAction.SlowDownPacing:
+                feedback.title = "Slow Down";
+                feedback.message = GenerateSlowDownMessage(current);
+                break;
+                
+            case FeedbackAction.SpeedUpPacing:
+                feedback.title = "Speed Up";
+                feedback.message = GenerateSpeedUpMessage(current);
                 break;
 
             case FeedbackAction.OptimizeTone:
@@ -137,64 +134,14 @@ public class FeedbackMessage
                 feedback.message = GenerateNervousnessMessage(current);
                 break;
                 
-            case FeedbackAction.ImproveBodyLanguage:
-                feedback.title = "Enhance Your Presence";
-                feedback.message = GenerateBodyLanguageMessage(current);
+            case FeedbackAction.ImproveVocalVariety:
+                feedback.title = "Vary Your Voice";
+                feedback.message = GenerateVocalVarietyMessage(current);
                 break;
                 
-            case FeedbackAction.AddMoreDetails:
-                feedback.title = "Provide Specific Examples";
-                feedback.message = GenerateDetailsMessage(current);
-                break;
-                
-            case FeedbackAction.BeMoreConcise:
-                feedback.title = "Focus Your Message";
-                feedback.message = GenerateConciseMessage(current);
-                break;
-                
-            case FeedbackAction.ShowMoreEnthusiasm:
-                feedback.title = "Show Your Passion";
+            case FeedbackAction.AddEnthusiasm:
+                feedback.title = "Show More Energy";
                 feedback.message = GenerateEnthusiasmMessage(current);
-                break;
-                
-            case FeedbackAction.StructureAnswersBetter:
-                feedback.title = "Organize Your Thoughts";
-                feedback.message = GenerateStructureMessage(current);
-                break;
-                
-            case FeedbackAction.HighlightAchievements:
-                feedback.title = "Emphasize Your Wins";
-                feedback.message = GenerateAchievementsMessage(current);
-                break;
-                
-            case FeedbackAction.DemonstrateLeadership:
-                feedback.title = "Show Leadership";
-                feedback.message = GenerateLeadershipMessage(current);
-                break;
-                
-            case FeedbackAction.ShowProblemSolving:
-                feedback.title = "Display Analytical Thinking";
-                feedback.message = GenerateProblemSolvingMessage(current);
-                break;
-                
-            case FeedbackAction.ExpressCuriosity:
-                feedback.title = "Ask Thoughtful Questions";
-                feedback.message = GenerateCuriosityMessage(current);
-                break;
-                
-            case FeedbackAction.BuildRapport:
-                feedback.title = "Connect Personally";
-                feedback.message = GenerateRapportMessage(current);
-                break;
-                
-            case FeedbackAction.ListenMoreActively:
-                feedback.title = "Engage More Fully";
-                feedback.message = GenerateActiveListeningMessage(current);
-                break;
-                
-            case FeedbackAction.MatchInterviewerEnergy:
-                feedback.title = "Mirror Communication Style";
-                feedback.message = GenerateEnergyMatchMessage(current);
                 break;
 
             case FeedbackAction.MaintainCurrentApproach:
@@ -239,6 +186,18 @@ public class FeedbackMessage
             return $"You're speaking quite quickly ({(pace * 100):F0}%). While enthusiasm is great, slow down a touch to ensure clarity. Take deliberate pauses between key points to let the interviewer absorb your message.";
         else
             return $"Your pace is very fast ({(pace * 100):F0}%). Take a breath! Speaking too quickly can make you seem nervous and reduces comprehension. Slow down, pause between sentences, and emphasize important words.";
+    }
+    
+    private static string GenerateSlowDownMessage(InterviewPerformance perf)
+    {
+        int pacePercent = (int)(perf.pace * 100);
+        return $"Pace: {pacePercent}%. You're rushing! Slow down to improve clarity and show confidence. Take deliberate pauses between key points - this gives the interviewer time to absorb your message and shows you're thoughtful. Practice the 'breath pause' technique: breathe before answering, pause between sentences. Speaking too quickly can signal nervousness. Confident speakers control their pace.";
+    }
+    
+    private static string GenerateSpeedUpMessage(InterviewPerformance perf)
+    {
+        int pacePercent = (int)(perf.pace * 100);
+        return $"Pace: {pacePercent}%. Pick up the tempo! You're speaking too slowly, which can make you seem uncertain or cause the interviewer to lose engagement. Add more energy to your delivery. Practice your answers beforehand so they flow naturally. Aim for 2-3 words per second. A moderate pace shows enthusiasm and keeps attention focused on your message.";
     }
 
     private static string GenerateClarityMessage(InterviewPerformance perf)
@@ -303,68 +262,207 @@ public class FeedbackMessage
 
     private static string GenerateBodyLanguageMessage(InterviewPerformance perf)
     {
-        string[] tips = new string[]
+        // Renamed to VocalVariety - no camera available
+        return GenerateVocalVarietyMessage(perf);
+    }
+
+    private static string GenerateVocalVarietyMessage(InterviewPerformance perf)
+    {
+        // Focus on vocal dynamics since there's no camera
+        if (perf.tone < 0.5f && perf.pace < 0.5f)
         {
-            "Body language speaks volumes! Sit up straight with shoulders back. Keep your hands visible and use natural gestures to emphasize points. Maintain good eye contact - look at the camera, not the screen. Smile genuinely to convey warmth and confidence.",
-            "Your non-verbal communication matters just as much as your words. Avoid crossing your arms (looks defensive) or fidgeting. Lean in slightly when listening to show engagement. Nod occasionally to show you're following along. Power poses before the interview boost confidence!",
-            "Project presence through posture! Plant both feet on the ground. Keep your chin parallel to the floor. Use open hand gestures instead of pointing. Mirror the interviewer's body language subtly to build rapport. Your physical confidence will translate to vocal confidence."
-        };
-        return tips[UnityEngine.Random.Range(0, tips.Length)];
+            return $"Tone: {(perf.tone * 100):F0}%, Pace: {(perf.pace * 100):F0}%. Your voice needs more variation! Avoid monotone delivery - vary your pitch to emphasize key points. Slow down for important ideas, speed up slightly for background. Change your volume: louder for confident statements, softer for thoughtful moments. Think of it like telling a story, not reading a script.";
+        }
+        else if (perf.tone < 0.5f)
+        {
+            return $"Tone: {(perf.tone * 100):F0}%. Add vocal dynamics! Use pitch variation - go higher when excited or asking questions, lower for serious points. Emphasize power words: 'I ACHIEVED a 40% improvement.' Pause strategically before key points to build anticipation. Your voice is an instrument - play it expressively!";
+        }
+        else if (perf.pace < 0.5f)
+        {
+            return $"Pace: {(perf.pace * 100):F0}%. Use strategic pacing! Speed up when listing background details, slow down for main points you want them to remember. Pause after important statements - let them sink in. Vary your rhythm to keep attention. Monotonous pacing puts people to sleep; dynamic pacing keeps them engaged.";
+        }
+        else
+        {
+            return $"Overall: {(perf.overall * 100):F0}%. Enhance vocal engagement! Practice vocal emphasis: stress important words in each sentence. Use 'upspeak' (rising tone) for questions or possibilities, 'downspeak' (falling tone) for facts and conclusions. Record yourself and listen - are you interesting to hear? Would YOU stay engaged listening to this? Polish your vocal delivery like a podcast host!";
+        }
     }
 
     private static string GenerateDetailsMessage(InterviewPerformance perf)
     {
-        return $"Clarity: {(perf.clarity * 100):F0}%. Your answers need more concrete examples. Instead of saying 'I improved the system,' say 'I reduced load times by 40% by implementing Redis caching, which saved the company 20 hours per week.' Use numbers, timeframes, and measurable outcomes. The STAR method helps: Situation, Task, Action, Result. Make it vivid and specific!";
+        int clarityPercent = (int)(perf.clarity * 100);
+        
+        if (clarityPercent < 40)
+        {
+            return $"Clarity: {clarityPercent}%. Your answers are too vague. Replace generic statements with specific examples. Instead of 'I worked on a project,' say 'I led a 6-month migration project that improved performance by 40% and reduced costs by $50K annually.' Use the STAR method: Situation, Task, Action, Result.";
+        }
+        else if (clarityPercent < 60)
+        {
+            return $"Clarity: {clarityPercent}%. Add concrete numbers and outcomes! Instead of 'I improved the system,' say 'I reduced API response time from 800ms to 120ms, handling 3x more traffic.' Quantify everything: team size, timelines, percentages, dollar amounts. Make it vivid and measurable!";
+        }
+        else
+        {
+            return $"Clarity: {clarityPercent}%. You're communicating well, but go deeper! Add context about WHY your solution mattered. Who benefited? What was the business impact? What would have happened if you hadn't acted? Connect your technical work to business outcomes.";
+        }
     }
 
     private static string GenerateConciseMessage(InterviewPerformance perf)
     {
-        return $"Pace: {(perf.pace * 100):F0}%. You might be over-explaining. Aim for the 'headline first' approach - state your main point in one sentence, then provide 2-3 supporting details. Practice the 2-minute rule: can you summarize any answer in under 2 minutes? Cut filler words and tangents. Quality over quantity!";
+        int pacePercent = (int)(perf.pace * 100);
+        
+        if (pacePercent > 80)
+        {
+            return $"Pace: {pacePercent}%. You're rushing and over-explaining! Slow down. Practice the 'headline first' approach: state your main point in one sentence, THEN provide 2-3 supporting details. Example: 'I increased team efficiency by 30% through automated testing.' Then elaborate. Cut filler words like 'basically,' 'actually,' 'kind of.'";
+        }
+        else if (pacePercent > 70)
+        {
+            return $"Pace: {pacePercent}%. You might be including too much detail. Apply the 2-minute rule: can you summarize any answer in under 2 minutes? If not, cut tangents. Focus on the most impressive and relevant points. Quality beats quantity. The interviewer can always ask for more details.";
+        }
+        else
+        {
+            return $"Pace: {pacePercent}%. Balance depth with brevity. After answering, pause and check the interviewer's reaction. Are they nodding (good, continue)? Looking confused (clarify)? Glancing at notes (you might be rambling)? Read the room and adjust accordingly.";
+        }
     }
 
     private static string GenerateEnthusiasmMessage(InterviewPerformance perf)
     {
-        return $"Tone: {(perf.tone * 100):F0}%. Show more passion! Your technical skills are evident, but interviewers also want to see excitement. Why does this role excite you? What genuinely interests you about this company? Let that enthusiasm come through in your voice. Smile while you talk - it changes your vocal tone and energy level. Passion is contagious!";
+        int tonePercent = (int)(perf.tone * 100);
+        
+        if (tonePercent < 40)
+        {
+            return $"Tone: {tonePercent}%. Your delivery feels flat! Inject energy into your voice. What genuinely excites you about this role? Why do you care about this company's mission? Let that authentic enthusiasm shine through. Smile while you talk - it literally changes your vocal tone and makes you sound more engaged.";
+        }
+        else if (tonePercent < 60)
+        {
+            return $"Tone: {tonePercent}%. Show more passion for your work! When describing projects you loved, your voice should light up. Use phrases like 'What I found fascinating was...' or 'The exciting challenge here was...' Don't just list facts - share what motivated you. Passion is contagious and memorable!";
+        }
+        else
+        {
+            return $"Tone: {tonePercent}%. You're doing well, but vary your vocal energy! Be serious when discussing challenges, enthusiastic when sharing successes, thoughtful when explaining decisions. This emotional range makes you more engaging and shows you understand the weight of different situations.";
+        }
     }
 
     private static string GenerateStructureMessage(InterviewPerformance perf)
     {
-        return $"Clarity: {(perf.clarity * 100):F0}%. Organize your thoughts using frameworks. For behavioral questions, use STAR (Situation, Task, Action, Result). For technical problems, use Problem-Solution-Impact. Start strong: 'The short answer is...' then elaborate. Use transitions: 'First...', 'Additionally...', 'In conclusion...'. Signpost your thinking!";
+        int clarityPercent = (int)(perf.clarity * 100);
+        
+        if (clarityPercent < 45)
+        {
+            return $"Clarity: {clarityPercent}%. Your answers lack structure! Use the STAR framework for behavioral questions: Situation (context), Task (challenge), Action (what YOU did), Result (outcome with numbers). Start with: 'Let me walk you through a specific example...' This keeps you organized and focused.";
+        }
+        else if (clarityPercent < 60)
+        {
+            return $"Clarity: {clarityPercent}%. Improve organization with signposting! Use verbal markers: 'First, let me give you context...', 'The main challenge was...', 'I took three key actions...', 'The result was...'. This roadmap helps interviewers follow your thinking and shows logical thought process.";
+        }
+        else
+        {
+            return $"Clarity: {clarityPercent}%. Good structure, but make your opening stronger! Lead with the most impressive part: 'I saved the company $200K by redesigning the deployment pipeline.' THEN explain how. Hook them first, then deliver the details. 'Headline first' makes you memorable.";
+        }
     }
 
     private static string GenerateAchievementsMessage(InterviewPerformance perf)
     {
-        return $"Confidence: {(perf.confidence * 100):F0}%. Don't be humble - this is your time to shine! Quantify your wins: 'I increased sales by 30%', 'I led a team of 8', 'I reduced costs by $50K'. Use strong action verbs: achieved, spearheaded, optimized, transformed. Own your accomplishments without apologizing. Replace 'I just...' with 'I successfully...'";
+        int confPercent = (int)(perf.confidence * 100);
+        
+        if (confPercent < 40)
+        {
+            return $"Confidence: {confPercent}%. Stop downplaying your accomplishments! Remove 'just,' 'only,' and 'simply' from your vocabulary. Replace 'I helped with...' with 'I contributed to...' or 'I drove...'. Replace 'We did...' with 'I led the team to...'. Take credit for YOUR specific impact. You earned it!";
+        }
+        else if (confPercent < 55)
+        {
+            return $"Confidence: {confPercent}%. Quantify every win with hard numbers! 'Improved performance' becomes 'Reduced load time by 60%, handling 10K more users daily'. 'Led a team' becomes 'Managed 8 engineers across 3 time zones'. 'Successful project' becomes '30% under budget, delivered 2 weeks early'. Numbers are proof!";
+        }
+        else
+        {
+            return $"Confidence: {confPercent}%. Solid presentation, but emphasize your unique value! What did YOU specifically contribute that others couldn't? Use power verbs: architected, spearheaded, pioneered, transformed, optimized. Connect your actions directly to business outcomes: revenue up, costs down, efficiency improved, customers satisfied.";
+        }
     }
 
     private static string GenerateLeadershipMessage(InterviewPerformance perf)
     {
-        return "Demonstrate leadership qualities even if you haven't had a formal leadership role! Talk about times you took initiative, mentored others, drove consensus, or influenced decisions. Leadership shows through phrases like 'I proposed...', 'I coordinated...', 'I guided the team...'. Show you can inspire and influence, not just execute.";
+        int confPercent = (int)(perf.confidence * 100);
+        
+        if (confPercent < 50)
+        {
+            return $"Confidence: {confPercent}%. Highlight leadership even without a title! Talk about times you took initiative: 'I noticed the deployment process was broken, so I proposed and implemented automated testing.' Show you drive change, don't wait for permission. Initiative IS leadership.";
+        }
+        else
+        {
+            return $"Overall: {(int)(perf.overall * 100)}%. Demonstrate leadership impact! Share examples where you: influenced decisions ('I convinced the team to adopt microservices'), mentored others ('I onboarded 3 junior devs'), or resolved conflict ('I mediated between design and engineering'). Leadership is about influence, not authority.";
+        }
     }
 
     private static string GenerateProblemSolvingMessage(InterviewPerformance perf)
     {
-        return "Showcase your analytical thinking! Walk through your thought process: 'I identified the root cause by...', 'I considered three alternatives...', 'I chose this approach because...'. Show trade-off analysis. Mention data you gathered, stakeholders you consulted, risks you evaluated. Interviewers want to see HOW you think, not just WHAT you decided.";
+        int clarityPercent = (int)(perf.clarity * 100);
+        
+        if (clarityPercent > 70 && perf.confidence > 0.65)
+        {
+            return $"Clarity: {clarityPercent}%, Confidence: {(int)(perf.confidence * 100)}%. You're strong here, but go deeper into your process! Show your analytical thinking: 'I gathered metrics showing 40% of errors came from one endpoint. I considered three solutions: caching, rate-limiting, or refactoring. I chose refactoring because...' Walk through your decision-making, not just the decision.";
+        }
+        else
+        {
+            return "Showcase analytical thinking! Structure problem-solving stories: 1) Symptoms you noticed, 2) Data you gathered, 3) Root cause analysis, 4) Alternatives considered, 5) Trade-offs evaluated, 6) Solution chosen and WHY, 7) Results achieved. Show you're systematic and data-driven, not just lucky or reactive.";
+        }
     }
 
     private static string GenerateCuriosityMessage(InterviewPerformance perf)
     {
-        return "Interviews are two-way conversations! Prepare 3-5 thoughtful questions that show you've researched the company: 'I noticed you recently launched X, how is that affecting the team's priorities?' Ask about challenges, team dynamics, success metrics, growth opportunities. Avoid questions easily answered by Google. Curiosity shows genuine interest and initiative!";
+        int overallPercent = (int)(perf.overall * 100);
+        
+        if (overallPercent < 70 && perf.confidence > 0.6)
+        {
+            return $"Overall: {overallPercent}%. Ask smarter questions! Show you've done research: 'I read about your new AI initiative - how does that affect your infrastructure roadmap?' Ask about challenges: 'What's the biggest technical debt the team is tackling?' Ask about culture: 'How does the team balance innovation vs. stability?' Thoughtful questions prove genuine interest.";
+        }
+        else
+        {
+            return "Prepare 5-7 questions categorized: technical challenges, team dynamics, success metrics, growth opportunities, company direction. Ask about the interviewer's experience: 'What's your favorite part of working here?' Avoid easily Googled questions. Interviews are two-way - show you're evaluating them too!";
+        }
     }
 
     private static string GenerateRapportMessage(InterviewPerformance perf)
     {
-        return $"Tone: {(perf.tone * 100):F0}%. Build personal connection! Find common ground early - reference something from their LinkedIn or the company's recent news. Use the interviewer's name occasionally. Share brief personal anecdotes that humanize you. Be authentic, not robotic. People hire people they like and can imagine working with. Show personality!";
+        int tonePercent = (int)(perf.tone * 100);
+        
+        if (tonePercent < 50)
+        {
+            return $"Tone: {tonePercent}%. Build connection beyond technical talk! Find common ground early - reference the interviewer's background: 'I saw you worked at X, I'm curious about...' Share brief personal anecdotes that show who you are: hobbies, values, what drives you. People hire people they like working with!";
+        }
+        else if (tonePercent < 65)
+        {
+            return $"Tone: {tonePercent}%. Humanize the conversation! Use the interviewer's name occasionally. Show vulnerability: 'That's a great question, let me think for a moment' is better than fumbling. Acknowledge their insights: 'That's an interesting perspective!' Be warm, not robotic. Authenticity builds trust.";
+        }
+        else
+        {
+            return $"Tone: {tonePercent}%. You're building rapport well! Now deepen it by showing genuine curiosity about their experience. Ask follow-up questions: 'You mentioned challenge X, how did the team overcome that?' This shows you're engaged and see them as collaborators, not just gatekeepers.";
+        }
     }
 
     private static string GenerateActiveListeningMessage(InterviewPerformance perf)
     {
-        return "Show you're truly engaged! Don't just wait for your turn to talk. Take brief notes, nod, and use verbal acknowledgments ('That's a great question', 'I appreciate you asking that'). Paraphrase their question to confirm understanding: 'If I'm hearing you correctly, you're asking about...' Ask clarifying questions. This shows respect and thoughtfulness.";
+        int overallPercent = (int)(perf.overall * 100);
+        
+        if (overallPercent < 75)
+        {
+            return $"Overall: {overallPercent}%. Show you're truly listening! Take brief notes (shows they said something worth writing down). Use verbal acknowledgments: 'That's a great question,' 'I appreciate you asking that.' Paraphrase to confirm: 'So you're asking about my experience with distributed systems?' This builds respect and prevents misunderstandings.";
+        }
+        else
+        {
+            return "Master active listening! Pause before answering (shows you're thinking, not just reciting). Reference earlier parts of the conversation: 'Building on what you said about scalability challenges...' Ask clarifying questions: 'To make sure I answer fully, are you asking about horizontal or vertical scaling?' This shows depth of engagement.";
+        }
     }
 
     private static string GenerateEnergyMatchMessage(InterviewPerformance perf)
     {
-        return $"Overall: {(perf.overall * 100):F0}%. Match the interviewer's communication style! If they're formal and structured, be organized and professional. If they're casual and conversational, relax a bit. Mirror their pace - if they speak quickly, pick up your tempo. If they're analytical, provide data. If they're people-focused, share stories. Adaptation builds rapport!";
+        int overallPercent = (int)(perf.overall * 100);
+        
+        if (overallPercent < 60)
+        {
+            return $"Overall: {overallPercent}%. Adapt your style to match theirs! If the interviewer is formal and structured, be organized and professional. If they're casual and conversational, relax a bit but stay professional. If they speak quickly, pick up your pace slightly. If they're analytical, provide data. If they're story-focused, share anecdotes. Mirroring builds rapport!";
+        }
+        else
+        {
+            return $"Overall: {overallPercent}%. You're adapting well! Fine-tune your mirroring: match their vocabulary (do they say 'customers' or 'users'? 'team' or 'squad'?). Reflect their priorities - if they emphasize speed, highlight your efficiency. If they focus on quality, showcase your attention to detail. Subtle alignment shows cultural fit!";
+        }
     }
 }
 

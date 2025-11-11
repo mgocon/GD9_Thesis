@@ -9,7 +9,6 @@ using UnityEngine;
 public class VoiceAnalyzer : MonoBehaviour
 {
     [Header("Analysis Settings")]
-    [SerializeField] private float analysisThreshold = 0.1f;
     [SerializeField] private bool useSimulation = true;  // Set false when real audio analysis is ready
 
     private VoskSpeechToText voskSpeechToText;

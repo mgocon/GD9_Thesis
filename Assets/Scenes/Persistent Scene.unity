@@ -322,10 +322,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5e58a26d2cd7434ca7f678f9c724e29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  selectedDevice: 
+  selectedDevice: Microphone (USB Condenser Microphone)
   _minimumSpeakingSampleValue: 0.1
-  _silenceTimer: 3
-  _autoDetect: 0
+  _silenceTimer: 10
+  _autoDetect: 1
 --- !u!114 &450954872
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -633,7 +633,7 @@ GameObject:
   - component: {fileID: 1490295577}
   - component: {fileID: 1490295579}
   m_Layer: 0
-  m_Name: FeedbackSystem
+  m_Name: FeedbackManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -652,6 +652,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   verboseLogging: 1
+  useMLInference: 1
   currentModelType: 0
   voiceAnalyzer: {fileID: 1490295579}
   trackPerformance: 1
@@ -683,7 +684,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00857214149bd2549a533154f68983a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  analysisThreshold: 0.1
   useSimulation: 1
 --- !u!1 &1644243862
 GameObject:

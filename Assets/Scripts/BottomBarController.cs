@@ -20,6 +20,8 @@ public class BottomBarController : MonoBehaviour
     [Header("AI Feedback Integration")]
     public FeedbackManager feedbackManager;
     public FeedbackComparisonUI feedbackComparisonUI;  // NEW: Show both DQN and PPO
+    public SpeedTrackerUI speedTrackerUI;
+    public GameSummaryScreen gameSummaryScreen; // NEW: End-of-game summary
     public bool autoGenerateFeedback = true;
     private float responseStartTime;
     private string currentTranscription = "";
@@ -35,6 +37,7 @@ public class BottomBarController : MonoBehaviour
     [Header("Popup Boxes")]
     public RectTransform leftBox;
     public RectTransform rightBox;
+    public RectTransform topBox; // slides from above when showing (third option)
     public float boxesSlideDistance = 300f;
     public float boxesSlideDuration = 0.25f;
 
@@ -50,6 +53,7 @@ public class BottomBarController : MonoBehaviour
     private bool areBoxesVisible = false;
     private Coroutine leftBoxCoroutine;
     private Coroutine rightBoxCoroutine;
+    private Coroutine topBoxCoroutine;
     private int sentenceIndex = -1;
     private StoryScene currentScene;
     private List<int> playbackOrder;
@@ -57,6 +61,9 @@ public class BottomBarController : MonoBehaviour
 
     private enum State { PLAYING, COMPLETED }
 
+    // Store last generated feedbacks for comparison so we can record the chosen one later
+    private FeedbackMessage lastDQNFeedback;
+    private FeedbackMessage lastPPOFeedback;
     public void PlayScene(StoryScene scene)
     {
         currentScene = scene;
@@ -112,6 +119,15 @@ public class BottomBarController : MonoBehaviour
 
     private IEnumerator TypeText(string text)
     {
+        // Ensure TMP settings prevent visible overflow: enable wrapping and use ellipsis overflow
+        if (barText != null)
+        {
+            barText.enableWordWrapping = true;
+            barText.overflowMode = TMPro.TextOverflowModes.Ellipsis;
+            // Disable auto-sizing here to keep layout predictable during typewriter effect
+            barText.enableAutoSizing = false;
+        }
+
         barText.text = "";
         state = State.PLAYING;
         int wordIndex = 0;
@@ -119,6 +135,24 @@ public class BottomBarController : MonoBehaviour
         while (state != State.COMPLETED)
         {
             barText.text += text[wordIndex];
+            // Safeguard: if the new text exceeds the rect, truncate and finish
+            if (barText != null)
+            {
+                Vector2 pref = barText.GetPreferredValues(barText.text);
+                float height = barText.rectTransform.rect.height;
+                if (pref.y > height)
+                {
+                    // Trim characters until it fits, then add ellipsis
+                    string current = barText.text;
+                    while (current.Length > 1 && barText.GetPreferredValues(current + "…").y > height)
+                    {
+                        current = current.Substring(0, current.Length - 1);
+                    }
+                    barText.text = current + "…";
+                    state = State.COMPLETED;
+                    break;
+                }
+            }
             yield return new WaitForSeconds(0.05f);
             if (++wordIndex == text.Length)
             {
@@ -204,6 +238,17 @@ public class BottomBarController : MonoBehaviour
             }
             rightBoxCoroutine = StartCoroutine(SlideBox(rightBox, areBoxesVisible, Vector2.left, boxesSlideDistance, boxesSlideDuration, () => rightBoxCoroutine = null));
         }
+
+        // Also show/hide the top box (third choice) if present
+        if (topBox != null)
+        {
+            if (topBoxCoroutine != null)
+            {
+                StopCoroutine(topBoxCoroutine);
+                topBoxCoroutine = null;
+            }
+            topBoxCoroutine = StartCoroutine(SlideBox(topBox, areBoxesVisible, Vector2.down, boxesSlideDistance, boxesSlideDuration, () => topBoxCoroutine = null));
+        }
     }
 
     // New Done button: toggles popup boxes and ensures Vosk recording is stopped
@@ -230,7 +275,9 @@ public class BottomBarController : MonoBehaviour
         // Show the PPO/DQN choice boxes (these now act as "Choose PPO" / "Choose DQN")
         areBoxesVisible = !areBoxesVisible;
 
-        if (leftBox != null)
+    Debug.Log($"OnDoneButtonPressed: areBoxesVisible={areBoxesVisible}, leftBox={(leftBox!=null)}, rightBox={(rightBox!=null)}, topBox={(topBox!=null)}");
+
+    if (leftBox != null)
         {
             if (leftBoxCoroutine != null)
             {
@@ -250,6 +297,26 @@ public class BottomBarController : MonoBehaviour
             rightBoxCoroutine = StartCoroutine(SlideBox(rightBox, areBoxesVisible, Vector2.left, boxesSlideDistance, boxesSlideDuration, () => rightBoxCoroutine = null));
         }
 
+        // Ensure top box is handled exactly like left/right: activate if showing and start slide
+        if (topBox != null)
+        {
+            Debug.Log($"OnDoneButtonPressed: preparing topBox (activeBefore={topBox.gameObject.activeSelf})");
+            // If we're showing boxes and the topBox (or its parent) is inactive, try to activate the GameObject so the slide coroutine can manipulate it.
+            if (areBoxesVisible && !topBox.gameObject.activeSelf)
+            {
+                topBox.gameObject.SetActive(true);
+                Debug.Log("OnDoneButtonPressed: topBox set active before starting slide");
+            }
+
+            if (topBoxCoroutine != null)
+            {
+                StopCoroutine(topBoxCoroutine);
+                topBoxCoroutine = null;
+            }
+            Debug.Log("OnDoneButtonPressed: starting topBox slide coroutine");
+            topBoxCoroutine = StartCoroutine(SlideBox(topBox, areBoxesVisible, Vector2.down, boxesSlideDistance, boxesSlideDuration, () => topBoxCoroutine = null));
+        }
+
         // disable Done button to avoid multiple presses until next question
         if (doneButton != null)
             doneButton.interactable = false;
@@ -258,6 +325,19 @@ public class BottomBarController : MonoBehaviour
     // Show the end-of-level popup (call when player finished all questions and there is no next scene)
     public void ShowEndPopup()
     {
+        Debug.Log("=== ShowEndPopup() called ===");
+        
+        // Show the game summary screen first
+        if (gameSummaryScreen != null)
+        {
+            Debug.Log("GameSummaryScreen found, calling ShowSummary()");
+            gameSummaryScreen.ShowSummary();
+        }
+        else
+        {
+            Debug.LogWarning("GameSummaryScreen is NULL in BottomBarController!");
+        }
+        
         if (endBox == null) return;
 
         if (endBoxCoroutine != null)
@@ -285,20 +365,6 @@ public class BottomBarController : MonoBehaviour
         }
 
         endBoxCoroutine = StartCoroutine(SlideBox(endBox, false, Vector2.up, endBoxDistance, endBoxDuration, () => endBoxCoroutine = null));
-    }
-
-    // Toggle the end popup: show if hidden, hide if visible. Hook this to a Button OnClick.
-    public void ToggleEndPopup()
-    {
-        if (endBox == null) return;
-
-        // Use activeSelf to determine current visibility; if an animation may still be running,
-        // prefer checking whether the panel is active in the hierarchy.
-        bool isVisible = endBox.gameObject.activeSelf;
-        if (isVisible)
-            HideEndPopup();
-        else
-            ShowEndPopup();
     }
 
     // Called by the end-popup button. Ask GameManager to load the main menu by name.
@@ -408,18 +474,26 @@ public class BottomBarController : MonoBehaviour
         // Player chose DQN feedback (after seeing both)
         DataLogger.Instance?.LogAlgorithmChoice("DQN");
         algorithmChosen = true;
-        
+
         Debug.Log("✅ Player chose DQN feedback");
-        
+
+        // Record the chosen model's performance into FeedbackManager once
+        if (feedbackManager != null && lastDQNFeedback != null && lastDQNFeedback.currentPerformance != null)
+        {
+            feedbackManager.RecordDQNScore(lastDQNFeedback.currentPerformance);
+            feedbackManager.RecordPerformanceScore(lastDQNFeedback.currentPerformance);
+            Debug.Log("Recorded DQN and session performance for chosen feedback.");
+        }
+
         // Hide comparison panel
         if (feedbackComparisonUI != null)
         {
             feedbackComparisonUI.HideComparison();
         }
-        
+
         // Hide speak image and popup boxes after choice
         HideUIAfterAlgorithmChoice();
-        
+
         // Advance to next question
         var gc = FindObjectOfType<GameController>();
         if (gc != null)
@@ -438,18 +512,71 @@ public class BottomBarController : MonoBehaviour
         // Player chose PPO feedback (after seeing both)
         DataLogger.Instance?.LogAlgorithmChoice("PPO");
         algorithmChosen = true;
-        
+
         Debug.Log("✅ Player chose PPO feedback");
-        
+
+        // Record the chosen model's performance into FeedbackManager once
+        if (feedbackManager != null && lastPPOFeedback != null && lastPPOFeedback.currentPerformance != null)
+        {
+            feedbackManager.RecordPPOScore(lastPPOFeedback.currentPerformance);
+            feedbackManager.RecordPerformanceScore(lastPPOFeedback.currentPerformance);
+            Debug.Log("Recorded PPO and session performance for chosen feedback.");
+        }
+
         // Hide comparison panel
         if (feedbackComparisonUI != null)
         {
             feedbackComparisonUI.HideComparison();
         }
-        
+
         // Hide speak image and popup boxes after choice
         HideUIAfterAlgorithmChoice();
-        
+
+        // Advance to next question
+        var gc = FindObjectOfType<GameController>();
+        if (gc != null)
+        {
+            gc.Advance();
+            Debug.Log("✅ Advancing to next question");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ GameController not found - cannot advance");
+        }
+    }
+
+    public void OnAlgorithmButtonClicked_Neither()
+    {
+        // Player chose neither feedback option
+        DataLogger.Instance?.LogAlgorithmChoice("Neither");
+        algorithmChosen = true;
+
+        Debug.Log("ℹ️ Player chose 'Neither' (no algorithm preferred)");
+
+        // Hide comparison panel
+        if (feedbackComparisonUI != null)
+        {
+            feedbackComparisonUI.HideComparison();
+        }
+
+        // If both feedbacks exist, record an average performance for the session (no algorithm-specific tally)
+        if (feedbackManager != null && lastDQNFeedback != null && lastPPOFeedback != null &&
+            lastDQNFeedback.currentPerformance != null && lastPPOFeedback.currentPerformance != null)
+        {
+            InterviewPerformance avg = new InterviewPerformance();
+            avg.confidence = (lastDQNFeedback.currentPerformance.confidence + lastPPOFeedback.currentPerformance.confidence) / 2f;
+            avg.clarity = (lastDQNFeedback.currentPerformance.clarity + lastPPOFeedback.currentPerformance.clarity) / 2f;
+            avg.pace = (lastDQNFeedback.currentPerformance.pace + lastPPOFeedback.currentPerformance.pace) / 2f;
+            avg.tone = (lastDQNFeedback.currentPerformance.tone + lastPPOFeedback.currentPerformance.tone) / 2f;
+            avg.overall = (lastDQNFeedback.currentPerformance.overall + lastPPOFeedback.currentPerformance.overall) / 2f;
+
+            feedbackManager.RecordPerformanceScore(avg);
+            Debug.Log("Recorded averaged session performance for 'Neither' choice.");
+        }
+
+        // Hide speak image and popup boxes after choice
+        HideUIAfterAlgorithmChoice();
+
         // Advance to next question
         var gc = FindObjectOfType<GameController>();
         if (gc != null)
@@ -533,19 +660,19 @@ public class BottomBarController : MonoBehaviour
         // Calculate response duration
         float responseDuration = Time.time - responseStartTime;
 
-        // Generate DQN feedback
-        feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
-        FeedbackMessage dqnFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+    // Generate DQN feedback WITHOUT updating session totals (we'll record when player chooses)
+    feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
+    lastDQNFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
 
-        // Generate PPO feedback
-        feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
-        FeedbackMessage ppoFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration);
+    // Generate PPO feedback WITHOUT updating session totals
+    feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
+    lastPPOFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
 
         // Display BOTH for comparison
-        if (dqnFeedback != null && ppoFeedback != null && feedbackComparisonUI != null)
+        if (lastDQNFeedback != null && lastPPOFeedback != null && feedbackComparisonUI != null)
         {
-            feedbackComparisonUI.ShowComparison(dqnFeedback, ppoFeedback);
-            Debug.Log($"📊 Showing feedback comparison - DQN: {dqnFeedback.action} vs PPO: {ppoFeedback.action}");
+            feedbackComparisonUI.ShowComparison(lastDQNFeedback, lastPPOFeedback);
+            Debug.Log($"📊 Showing feedback comparison - DQN: {lastDQNFeedback.action} vs PPO: {lastPPOFeedback.action}");
         }
     }
 

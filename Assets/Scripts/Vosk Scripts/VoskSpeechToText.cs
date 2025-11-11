@@ -104,17 +104,19 @@ public class VoskSpeechToText : MonoBehaviour
         {
             VoiceProcessor.OnFrameCaptured += VoiceProcessorOnOnFrameCaptured;
             VoiceProcessor.OnRecordingStop += VoiceProcessorOnOnRecordingStop;
+            VoiceProcessor.OnRecordingStart += VoiceProcessorOnOnRecordingStart;
 
             if (startMicrophone)
+            {
+                _running = true;
                 VoiceProcessor.StartRecording();
+                Task.Run(ThreadedWork);
+            }
         }
         else
         {
             Debug.LogWarning("No VoiceProcessor assigned! Vosk will initialize without microphone input.");
         }
-
-        if (startMicrophone)
-            VoiceProcessor.StartRecording();
 
         _isInitializing = false;
         _didInit = true;
@@ -335,9 +337,21 @@ public class VoskSpeechToText : MonoBehaviour
         _threadedBufferQueue.Enqueue(samples);
     }
 
+    private void VoiceProcessorOnOnRecordingStart()
+    {
+        Debug.Log("Recording Started / Speech detected");
+        if (!_running)
+        {
+            _running = true;
+            Task.Run(ThreadedWork);
+        }
+    }
+
     private void VoiceProcessorOnOnRecordingStop()
     {
-        Debug.Log("Stopped");
+        Debug.Log("Silence timer completed - next result will be new phrase");
+        // Don't call FinalResult() - let recognition continue
+        // Just signal that next result should be treated as new phrase
     }
 
     // Background worker (no async/await)
