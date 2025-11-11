@@ -149,7 +149,7 @@ public class FeedbackComparisonUI : MonoBehaviour
             dqnTitle, dqnMessage, dqnPerformanceText,
             dqnConfidenceBar, dqnClarityBar, dqnPaceBar, dqnToneBar, dqnOverallBar,
             dqnConfidenceValue, dqnClarityValue, dqnPaceValue, dqnToneValue,
-            currentDQNFeedback, "DQN"
+            currentDQNFeedback, "Feedback B"
         );
 
         // Populate PPO side
@@ -157,7 +157,7 @@ public class FeedbackComparisonUI : MonoBehaviour
             ppoTitle, ppoMessage, ppoPerformanceText,
             ppoConfidenceBar, ppoClarityBar, ppoPaceBar, ppoToneBar, ppoOverallBar,
             ppoConfidenceValue, ppoClarityValue, ppoPaceValue, ppoToneValue,
-            currentPPOFeedback, "PPO"
+            currentPPOFeedback, "Feedback A"
         );
 
         // Calculate and display overall question score (average of DQN and PPO)
