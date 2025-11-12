@@ -15,11 +15,17 @@ MonoBehaviour:
   sentences:
   - text: Good day to you.
     speaker: {fileID: 11400000, guid: 26c52bff932409149bb156000eac7ddc, type: 2}
+    isQuestion: 0
   - text: I am Mr. Thorne, I will be the one handling your interview today.
     speaker: {fileID: 11400000, guid: 26c52bff932409149bb156000eac7ddc, type: 2}
+    isQuestion: 0
   - text: I take it that Mr. Winslow explained everything to you perfectly?
     speaker: {fileID: 11400000, guid: 26c52bff932409149bb156000eac7ddc, type: 2}
+    isQuestion: 0
   - text: With that in mind, let us now start with the interview
     speaker: {fileID: 11400000, guid: 26c52bff932409149bb156000eac7ddc, type: 2}
+    isQuestion: 0
+  randomizeSentences: 0
+  sentencesToUse: 0
   background: {fileID: 21300000, guid: 0a3f3ed117232e04a99bce8f6b3221d2, type: 3}
   nextScene: {fileID: 0}
