@@ -140,8 +140,8 @@ public class GameSummaryScreen : MonoBehaviour
             var dqnBreakdown = feedbackManager.GetDQNScoreBreakdown();
             var ppoBreakdown = feedbackManager.GetPPOScoreBreakdown();
             
-            Debug.Log($"DQN breakdown: Questions={dqnBreakdown.questionCount}, Overall={dqnBreakdown.avgOverall:F2}");
-            Debug.Log($"PPO breakdown: Questions={ppoBreakdown.questionCount}, Overall={ppoBreakdown.avgOverall:F2}");
+            Debug.Log($"Feedback B breakdown: Questions={dqnBreakdown.questionCount}, Overall={dqnBreakdown.avgOverall:F2}");
+            Debug.Log($"Feedback A breakdown: Questions={ppoBreakdown.questionCount}, Overall={ppoBreakdown.avgOverall:F2}");
 
             string breakdownText = "<b>Average Performance Breakdown:</b>\n\n";
             
@@ -156,7 +156,7 @@ public class GameSummaryScreen : MonoBehaviour
             // DQN average
             if (dqnBreakdown.questionCount > 0)
             {
-                breakdownText += $"<b>DQN Algorithm Scores:</b>\n";
+                breakdownText += $"<b>Feedback B Algorithm Scores:</b>\n";
                 breakdownText += $"  Overall: {GetColoredScore(dqnBreakdown.avgOverall)}\n";
                 breakdownText += $"  Confidence: {GetColoredScore(dqnBreakdown.avgConfidence)}\n";
                 breakdownText += $"  Clarity: {GetColoredScore(dqnBreakdown.avgClarity)}\n";
@@ -167,7 +167,7 @@ public class GameSummaryScreen : MonoBehaviour
             // PPO average
             if (ppoBreakdown.questionCount > 0)
             {
-                breakdownText += $"<b>PPO Algorithm Scores:</b>\n";
+                breakdownText += $"<b>Feedback A Algorithm Scores:</b>\n";
                 breakdownText += $"  Overall: {GetColoredScore(ppoBreakdown.avgOverall)}\n";
                 breakdownText += $"  Confidence: {GetColoredScore(ppoBreakdown.avgConfidence)}\n";
                 breakdownText += $"  Clarity: {GetColoredScore(ppoBreakdown.avgClarity)}\n";

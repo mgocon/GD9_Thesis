@@ -17,8 +17,14 @@ public class GameController : MonoBehaviour
 
     void Update()
     {
+        // Ignore spacebar when the end-of-level popup is active
         if (Input.GetKeyDown(KeyCode.Space))
         {
+            if (bottomBar != null && bottomBar.IsEndPopupActive())
+            {
+                // Swallow the input while end popup is shown
+                return;
+            }
             Advance();
         }
     }
