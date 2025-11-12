@@ -28,8 +28,8 @@ public class DataLogger : MonoBehaviour
     private List<CsvRow> csvData = new List<CsvRow>();
     private readonly object dataLock = new object();
 
-    // MODIFIED: Added "RowType" column
-    private const string CsvHeader = "Timestamp,Level Name,PlaythroughNumber,RowType,Algorithm Chosen,Scene Name,Question/Dialogue,Player Answer,Sentence Index," +
+    // MODIFIED: Removed "Scene Name" column
+    private const string CsvHeader = "Timestamp,Level Name,PlaythroughNumber,RowType,Algorithm Chosen,Question/Dialogue,Player Answer,Sentence Index," +
                                      "DQN_Confidence,DQN_Clarity,DQN_Pace,DQN_Tone,DQN_Overall," +
                                      "PPO_Confidence,PPO_Clarity,PPO_Pace,PPO_Tone,PPO_Overall," +
                                      "Session_Confidence,Session_Clarity,Session_Pace,Session_Tone,Session_Overall";
@@ -41,9 +41,8 @@ public class DataLogger : MonoBehaviour
         public string Timestamp = string.Empty;
         public string LevelName = string.Empty;
         public int PlaythroughNumber = 1;
-        public string RowType = string.Empty; // NEW
+        public string RowType = string.Empty;
         public string Algorithm = string.Empty;
-        public string SceneName = string.Empty;
         public string Question = string.Empty;
         public string PlayerAnswer = string.Empty;
         public int SentenceIndex = -1;
@@ -69,7 +68,7 @@ public class DataLogger : MonoBehaviour
         public string Session_Tone = string.Empty;
         public string Session_Overall = string.Empty;
 
-        // MODIFIED: Simplified to use the improved Escape function everywhere
+        // MODIFIED: Removed SceneName from CSV output
         public string ToCsvLine()
         {
             string si = SentenceIndex >= 0 ? SentenceIndex.ToString() : "";
@@ -78,10 +77,9 @@ public class DataLogger : MonoBehaviour
             {
                 Escape(Timestamp),
                 Escape(LevelName),
-                PlaythroughNumber.ToString(), // This is a number, no escape needed
-                Escape(RowType), // NEW
+                PlaythroughNumber.ToString(),
+                Escape(RowType),
                 Escape(Algorithm),
-                Escape(SceneName),
                 Escape(Question),
                 Escape(PlayerAnswer),
                 Escape(si),
@@ -106,20 +104,17 @@ public class DataLogger : MonoBehaviour
             });
         }
         
-        // Helper function to create a CsvRow object from a CSV line
-        // Note: This is a simple parser and assumes no commas *within* escaped quotes
+        // MODIFIED: Updated to match new column count (removed SceneName)
         public static CsvRow FromCsvLine(string line)
         {
-            // Simple split, as our Escape function removes internal newlines
             string[] values = line.Split(',');
 
-            // Helper to unescape
             string Unescape(string s)
             {
                 if (s.StartsWith("\"") && s.EndsWith("\""))
                 {
-                    s = s.Substring(1, s.Length - 2); // Remove surrounding quotes
-                    s = s.Replace("\"\"", "\""); // Un-double quotes
+                    s = s.Substring(1, s.Length - 2);
+                    s = s.Replace("\"\"", "\"");
                 }
                 return s;
             }
@@ -133,43 +128,41 @@ public class DataLogger : MonoBehaviour
                     PlaythroughNumber = int.TryParse(values[2], out int pn) ? pn : 0,
                     RowType = Unescape(values[3]),
                     Algorithm = Unescape(values[4]),
-                    SceneName = Unescape(values[5]),
-                    Question = Unescape(values[6]),
-                    PlayerAnswer = Unescape(values[7]),
-                    SentenceIndex = int.TryParse(Unescape(values[8]), out int si) ? si : -1,
+                    Question = Unescape(values[5]),
+                    PlayerAnswer = Unescape(values[6]),
+                    SentenceIndex = int.TryParse(Unescape(values[7]), out int si) ? si : -1,
                     
-                    DQN_Confidence = Unescape(values[9]),
-                    DQN_Clarity = Unescape(values[10]),
-                    DQN_Pace = Unescape(values[11]),
-                    DQN_Tone = Unescape(values[12]),
-                    DQN_Overall = Unescape(values[13]),
+                    DQN_Confidence = Unescape(values[8]),
+                    DQN_Clarity = Unescape(values[9]),
+                    DQN_Pace = Unescape(values[10]),
+                    DQN_Tone = Unescape(values[11]),
+                    DQN_Overall = Unescape(values[12]),
                     
-                    PPO_Confidence = Unescape(values[14]),
-                    PPO_Clarity = Unescape(values[15]),
-                    PPO_Pace = Unescape(values[16]),
-                    PPO_Tone = Unescape(values[17]),
-                    PPO_Overall = Unescape(values[18]),
+                    PPO_Confidence = Unescape(values[13]),
+                    PPO_Clarity = Unescape(values[14]),
+                    PPO_Pace = Unescape(values[15]),
+                    PPO_Tone = Unescape(values[16]),
+                    PPO_Overall = Unescape(values[17]),
                     
-                    Session_Confidence = Unescape(values[19]),
-                    Session_Clarity = Unescape(values[20]),
-                    Session_Pace = Unescape(values[21]),
-                    Session_Tone = Unescape(values[22]),
-                    Session_Overall = Unescape(values[23]),
+                    Session_Confidence = Unescape(values[18]),
+                    Session_Clarity = Unescape(values[19]),
+                    Session_Pace = Unescape(values[20]),
+                    Session_Tone = Unescape(values[21]),
+                    Session_Overall = Unescape(values[22]),
                 };
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"DataLogger: Failed to parse CSV line: {line}. Error: {ex.Message}");
-                return null; // Return null if parsing fails
+                return null;
             }
         }
 
-        // This function now cleans up newlines and properly handles null/empty strings
         private string Escape(string s)
         {
             if (string.IsNullOrEmpty(s))
             {
-                return "\"\""; // Return empty quotes
+                return "\"\"";
             }
             s = s.Replace("\n", " ").Replace("\r", " ");
             s = s.Replace("\"", "\"\"");
@@ -236,7 +229,7 @@ public class DataLogger : MonoBehaviour
 
     private void OnSilenceTimerComplete()
     {
-        if (!IsLoggableScene(currentLevelName)) // Use currentLevelName
+        if (!IsLoggableScene(currentLevelName))
         {
             accumulatedAnswer = "";
             return;
@@ -245,7 +238,7 @@ public class DataLogger : MonoBehaviour
         if (!string.IsNullOrEmpty(accumulatedAnswer))
         {
             SaveAccumulatedAnswer();
-            accumulatedAnswer = ""; // Reset for next phrase
+            accumulatedAnswer = "";
             Debug.Log("🔄 Silence timer complete - answer saved and reset");
         }
     }
@@ -261,7 +254,6 @@ public class DataLogger : MonoBehaviour
         if (csvData.Count > 0 && IsLoggableScene(currentLevelName))
         {
             Debug.Log($"Saving data for previous level: {currentLevelName}");
-            // MODIFIED: Pass true to save and sort
             WriteAllDataToFile(true); 
         }
         
@@ -269,13 +261,13 @@ public class DataLogger : MonoBehaviour
         csvData.Clear();
 
         // 3. Now, set up the state for the NEW level
-        currentLevelName = newLevelLabel; // Set the new level name
+        currentLevelName = newLevelLabel;
 
         if (IsLoggableScene(currentLevelName))
         {
             // This is a playable level
             string key = $"PlayCount_{currentLevelName}";
-            currentPlaythroughNumber = PlayerPrefs.GetInt(key, 0) + 1; // Get current count, add 1
+            currentPlaythroughNumber = PlayerPrefs.GetInt(key, 0) + 1;
             
             Debug.Log($"📘 Scene loaded: {newSceneName} | Set to level: {currentLevelName} | This is Playthrough #{currentPlaythroughNumber}");
         }
@@ -287,27 +279,21 @@ public class DataLogger : MonoBehaviour
     }
 
     // --- SCENE NAME TO FRIENDLY NAME ---
-    // MODIFIED: Made case-insensitive for safety and put SENIOR first
     private string GetLevelNameFromSceneName(string sceneName)
     {
         string lowerSceneName = sceneName.ToLowerInvariant();
 
         if (lowerSceneName.Contains("tutorial")) return "Tutorial Level";
-        // --- FIX ---
-        // Check for senior first, as a scene name might contain both
         if (lowerSceneName.Contains("senior")) return "Senior Level"; 
         if (lowerSceneName.Contains("entry")) return "Entry Level";
-        // --- END FIX ---
         if (lowerSceneName.Contains("main_menu")) return "Main Menu";
         if (lowerSceneName.Contains("persistent")) return "Persistent Scene";
         
-        return sceneName; // Fallback
+        return sceneName;
     }
 
-    // NEW helper function, very important
     private bool IsLoggableScene(string levelName)
     {
-        // This ensures we only log when a *playable level* is currently active.
         return levelName != "Tutorial Level" && 
                !string.IsNullOrEmpty(levelName) &&
                levelName != "Main Menu" &&
@@ -346,9 +332,8 @@ public class DataLogger : MonoBehaviour
                     Timestamp = DateTime.Now.ToString("s"),
                     LevelName = effectiveLevel,
                     PlaythroughNumber = currentPlaythroughNumber,
-                    RowType = "Question", // NEW
+                    RowType = "Question",
                     Algorithm = currentAlgorithm,
-                    SceneName = SceneManager.GetActiveScene().name,
                     Question = currentQuestion,
                     PlayerAnswer = "",
                     SentenceIndex = currentSentenceIndex
@@ -373,7 +358,6 @@ public class DataLogger : MonoBehaviour
         currentSentenceIndex = sentenceIndex;
 
         string timestamp = DateTime.Now.ToString("s");
-        string sceneName = SceneManager.GetActiveScene().name;
         string effectiveLevel = currentLevelName;
 
         lock (dataLock)
@@ -395,9 +379,8 @@ public class DataLogger : MonoBehaviour
                     Timestamp = timestamp,
                     LevelName = effectiveLevel,
                     PlaythroughNumber = currentPlaythroughNumber,
-                    RowType = "Question", // NEW
+                    RowType = "Question",
                     Algorithm = currentAlgorithm,
-                    SceneName = sceneName,
                     Question = question,
                     PlayerAnswer = "",
                     SentenceIndex = sentenceIndex
@@ -429,10 +412,9 @@ public class DataLogger : MonoBehaviour
 
     private void SaveAccumulatedAnswer()
     {
-        if (!IsLoggableScene(currentLevelName)) return; // Extra safety check
+        if (!IsLoggableScene(currentLevelName)) return;
 
         string timestamp = DateTime.Now.ToString("s");
-        string sceneName = SceneManager.GetActiveScene().name;
         string effectiveLevel = currentLevelName;
 
         lock (dataLock)
@@ -455,9 +437,8 @@ public class DataLogger : MonoBehaviour
                     Timestamp = timestamp,
                     LevelName = effectiveLevel,
                     PlaythroughNumber = currentPlaythroughNumber,
-                    RowType = "Question", // NEW
+                    RowType = "Question",
                     Algorithm = currentAlgorithm,
-                    SceneName = sceneName,
                     Question = currentQuestion,
                     PlayerAnswer = accumulatedAnswer,
                     SentenceIndex = currentSentenceIndex
@@ -526,14 +507,9 @@ public class DataLogger : MonoBehaviour
                 Timestamp = DateTime.Now.ToString("s"),
                 LevelName = effectiveLevel,
                 PlaythroughNumber = currentPlaythroughNumber,
-                Algorithm = "", // Not applicable for summary
-                SceneName = SceneManager.GetActiveScene().name,
-                
-                // --- THIS IS THE FIX ---
-                RowType = "LevelSummary", // NEW
-                Question = "", // NEW: Set question to blank
-                // --- END OF FIX ---
-
+                Algorithm = "",
+                RowType = "LevelSummary",
+                Question = "",
                 PlayerAnswer = "",
                 SentenceIndex = -1,
                 
@@ -562,12 +538,11 @@ public class DataLogger : MonoBehaviour
             csvData.Add(summaryRow);
             Debug.Log($"📊 Logged Level Summary for {effectiveLevel}, Playthrough {currentPlaythroughNumber}");
             
-            // MODIFIED: Pass true to save and sort
             WriteAllDataToFile(true); 
             
             // AND NOW we update the PlayerPrefs count for this level
             string key = $"PlayCount_{currentLevelName}";
-            PlayerPrefs.SetInt(key, currentPlaythroughNumber); // It was already +1
+            PlayerPrefs.SetInt(key, currentPlaythroughNumber);
             PlayerPrefs.Save();
             Debug.Log($"Saved new play count ({currentPlaythroughNumber}) for {currentLevelName}");
         }
@@ -581,7 +556,7 @@ public class DataLogger : MonoBehaviour
         var existingData = new List<CsvRow>();
         if (!File.Exists(fullPath))
         {
-            return existingData; // Return empty list
+            return existingData;
         }
 
         try
@@ -607,7 +582,7 @@ public class DataLogger : MonoBehaviour
         return existingData;
     }
 
-    // MODIFIED: This function now READS, SORTS, and OVERWRITES
+    // MODIFIED: Changed sorting to use Timestamp instead of SentenceIndex
     private void WriteAllDataToFile(bool sort = false)
     {
         if (csvData.Count == 0)
@@ -624,19 +599,19 @@ public class DataLogger : MonoBehaviour
             // 2. Add the new data from this session
             allData.AddRange(csvData);
             
-            // 3. SORT THE DATA (This is your request!)
+            // 3. SORT THE DATA by Timestamp instead of SentenceIndex
             if (sort)
             {
                 allData = allData
-                    .OrderBy(row => row.LevelName)          // First, sort by Level Name
-                    .ThenBy(row => row.PlaythroughNumber)   // Then, by Playthrough Number
-                    .ThenBy(row => row.RowType == "LevelSummary" ? 1 : 0) // Put summaries at the end of each play
-                    .ThenBy(row => row.SentenceIndex)       // Then by the question order
+                    .OrderBy(row => row.LevelName)
+                    .ThenBy(row => row.PlaythroughNumber)
+                    .ThenBy(row => row.RowType == "LevelSummary" ? 1 : 0)
+                    .ThenBy(row => row.Timestamp)  // CHANGED: Sort by Timestamp instead of SentenceIndex
                     .ToList();
             }
 
             // 4. Overwrite the file with the newly sorted data
-            using (var writer = new StreamWriter(fullPath, false, Encoding.UTF8)) // false = OVERWRITE
+            using (var writer = new StreamWriter(fullPath, false, Encoding.UTF8))
             {
                 // Write the header first
                 writer.WriteLine(CsvHeader);
@@ -663,7 +638,6 @@ public class DataLogger : MonoBehaviour
     {
         lock (dataLock)
         {
-            // Pass true to sort the file on quit
             WriteAllDataToFile(true);
         }
         Debug.Log($"💾 File saved at {fullPath}");
@@ -681,8 +655,6 @@ public class DataLogger : MonoBehaviour
         // Unsubscribe from voice processor
         if (VoskManager.Instance?.GetSpeechToText()?.VoiceProcessor != null)
         {
-            // --- THIS IS THE FIX ---
-            // Was: voskSTT.VoiceProcessor.OnRecordingStop -= OnSilenceTimerComplete;
             VoskManager.Instance.GetSpeechToText().VoiceProcessor.OnRecordingStop -= OnSilenceTimerComplete;
         }
     }
