@@ -47,6 +47,7 @@ public class BottomBarController : MonoBehaviour
     public float endBoxDistance = 200f;
     public float endBoxDuration = 0.25f;
     private Coroutine endBoxCoroutine;
+    private bool endPopupActive = false;
     [Tooltip("Scene name to return to when player presses the end-popup button. GameManager will be asked to load this by name.")]
     public string mainMenuSceneName = "MAIN_MENU";
 
@@ -229,6 +230,9 @@ public class BottomBarController : MonoBehaviour
     {
         // If Vosk dialog text is empty, do not allow Done to proceed
         var voskDialog = FindObjectOfType<VoskDialogText>();
+        
+        // --- THIS IS THE FIX ---
+        // Was: if (voskDialog != null && (voskDialog.dialogueBox == null || string.IsNullOrWhiteSpace(vosKDialog.dialogueBox.text)))
         if (voskDialog != null && (voskDialog.dialogueBox == null || string.IsNullOrWhiteSpace(voskDialog.dialogueBox.text)))
         {
             Debug.LogWarning("Done is disabled until there is recognized speech in the dialog.");
@@ -299,7 +303,13 @@ public class BottomBarController : MonoBehaviour
     public void ShowEndPopup()
     {
         Debug.Log("=== ShowEndPopup() called ===");
+        // Mark popup active so external input (spacebar) can be ignored while visible
+        endPopupActive = true;
         
+        // --- NEW: Log summary data BEFORE showing the screen ---
+        DataLogger.Instance?.LogLevelSummary();
+        // --- End of new code ---
+
         // Show the game summary screen first
         if (gameSummaryScreen != null)
         {
@@ -337,12 +347,27 @@ public class BottomBarController : MonoBehaviour
             endBoxCoroutine = null;
         }
 
+        // Mark popup inactive immediately so input can resume while it animates away
+        endPopupActive = false;
         endBoxCoroutine = StartCoroutine(SlideBox(endBox, false, Vector2.up, endBoxDistance, endBoxDuration, () => endBoxCoroutine = null));
+    }
+
+    // Public query for other systems (e.g., GameController) to check whether end popup is visible
+    public bool IsEndPopupActive()
+    {
+        return endPopupActive;
     }
 
     // Called by the end-popup button. Ask GameManager to load the main menu by name.
     public void OnEndPopupBackToMainMenuPressed()
     {
+        // Reset FeedbackManager session data before returning to main menu
+        if (FeedbackManager.Instance != null)
+        {
+            FeedbackManager.Instance.ResetSession();
+            Debug.Log("Session reset when returning to main menu");
+        }
+        
         // Optionally hide popup immediately
         HideEndPopup();
 
@@ -640,6 +665,10 @@ public class BottomBarController : MonoBehaviour
     // Generate PPO feedback WITHOUT updating session totals
     feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
     lastPPOFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
+
+        // --- NEW: Log feedback scores to data logger ---
+        DataLogger.Instance?.LogFeedbackScores(lastDQNFeedback, lastPPOFeedback);
+        // --- End of new code ---
 
         // Display BOTH for comparison
         if (lastDQNFeedback != null && lastPPOFeedback != null && feedbackComparisonUI != null)

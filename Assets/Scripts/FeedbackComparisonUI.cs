@@ -106,9 +106,33 @@ public class FeedbackComparisonUI : MonoBehaviour
         if (choosePPOButton != null)
             choosePPOButton.onClick.AddListener(() => OnChoiceMade(ModelType.PPO));
 
+        // Make all sliders non-interactable (read-only)
+        MakeSliderReadOnly(dqnConfidenceBar);
+        MakeSliderReadOnly(dqnClarityBar);
+        MakeSliderReadOnly(dqnPaceBar);
+        MakeSliderReadOnly(dqnToneBar);
+        MakeSliderReadOnly(dqnOverallBar);
+        
+        MakeSliderReadOnly(ppoConfidenceBar);
+        MakeSliderReadOnly(ppoClarityBar);
+        MakeSliderReadOnly(ppoPaceBar);
+        MakeSliderReadOnly(ppoToneBar);
+        MakeSliderReadOnly(ppoOverallBar);
+
         // Initially hide
         if (comparisonPanel != null)
             comparisonPanel.SetActive(false);
+    }
+
+    /// <summary>
+    /// Make a slider read-only (non-interactable)
+    /// </summary>
+    private void MakeSliderReadOnly(Slider slider)
+    {
+        if (slider != null)
+        {
+            slider.interactable = false;
+        }
     }
 
     /// <summary>
@@ -218,6 +242,8 @@ public class FeedbackComparisonUI : MonoBehaviour
     {
         if (slider == null) return;
 
+        // Ensure slider is non-interactable (read-only)
+        slider.interactable = false;
         slider.value = value;
         
         // Update numerical value label
