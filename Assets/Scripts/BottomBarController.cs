@@ -350,6 +350,13 @@ public class BottomBarController : MonoBehaviour
     // Called by the end-popup button. Ask GameManager to load the main menu by name.
     public void OnEndPopupBackToMainMenuPressed()
     {
+        // Reset FeedbackManager session data before returning to main menu
+        if (FeedbackManager.Instance != null)
+        {
+            FeedbackManager.Instance.ResetSession();
+            Debug.Log("Session reset when returning to main menu");
+        }
+        
         // Optionally hide popup immediately
         HideEndPopup();
 
