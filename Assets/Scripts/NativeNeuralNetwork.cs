@@ -2,7 +2,6 @@ using UnityEngine;
 using System;
 using System.IO;
 using System.Collections.Generic;
-using SimpleJSON;
 
 /// <summary>
 /// Native C# implementation of a feedforward neural network
