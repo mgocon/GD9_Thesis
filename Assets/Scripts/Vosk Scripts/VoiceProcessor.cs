@@ -128,6 +128,11 @@ public class VoiceProcessor : MonoBehaviour
     }
 #endif
 
+    void OnEnable()
+    {
+        Debug.Log($"VoiceProcessor enabled - Current device: {CurrentDeviceName} (Index: {CurrentDeviceIndex})");
+    }
+
     /// <summary>
     /// Updates list of available audio devices
     /// </summary>
@@ -165,6 +170,9 @@ public class VoiceProcessor : MonoBehaviour
             return;
         }
 
+        // Update the selected device name to persist the change
+        selectedDevice = Devices[deviceIndex];
+
         if (IsRecording)
         {
             // one time event to restart recording with the new device 
@@ -181,6 +189,8 @@ public class VoiceProcessor : MonoBehaviour
         {
             CurrentDeviceIndex = deviceIndex;
         }
+        
+        Debug.Log($"Device changed to: {selectedDevice} (Index: {deviceIndex})");
     }
 
     /// <summary>
