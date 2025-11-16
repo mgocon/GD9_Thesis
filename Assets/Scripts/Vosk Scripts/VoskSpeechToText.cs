@@ -236,35 +236,29 @@ public class VoskSpeechToText : MonoBehaviour
 
     private IEnumerator CreateRecognizer()
     {
-        VoskRecognizer tempRecognizer = null;
-        Exception createError = null;
-
-        var createTask = Task.Run(() =>
+        // Don't create recognizer on background thread - do it on main thread
+        OnStatusUpdated?.Invoke("Creating recognizer...");
+        
+        try
         {
-            try
-            {
-                UpdateGrammar();
-                tempRecognizer = string.IsNullOrEmpty(_grammar)
-                    ? new VoskRecognizer(_model, 16000.0f)
-                    : new VoskRecognizer(_model, 16000.0f, _grammar);
+            UpdateGrammar();
+            
+            VoskRecognizer tempRecognizer = string.IsNullOrEmpty(_grammar)
+                ? new VoskRecognizer(_model, 16000.0f)
+                : new VoskRecognizer(_model, 16000.0f, _grammar);
 
-                tempRecognizer.SetMaxAlternatives(MaxAlternatives);
-            }
-            catch (Exception ex) { createError = ex; }
-        });
-
-        while (!createTask.IsCompleted)
-            yield return null;
-
-        if (createError != null)
-        {
-            Debug.LogError("Failed to create recognizer: " + createError);
-            yield break;
+            tempRecognizer.SetMaxAlternatives(MaxAlternatives);
+            
+            _recognizer = tempRecognizer;
+            _recognizerReady = true;
+            Debug.Log("Recognizer ready");
         }
-
-        _recognizer = tempRecognizer;
-        _recognizerReady = true;
-        Debug.Log("Recognizer ready");
+        catch (Exception ex)
+        {
+            Debug.LogError("Failed to create recognizer: " + ex);
+        }
+        
+        yield return null;
     }
 
     private IEnumerator WaitForMicrophoneInput()
