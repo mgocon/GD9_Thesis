@@ -11,7 +11,6 @@ public class VoskDialogText : MonoBehaviour
     
     private string currentText = "";
     private bool isTyping = false;
-    private bool isNewPhrase = true; // Track if this is a new phrase after silence timer
 
     void Awake()
     {
@@ -23,12 +22,6 @@ public class VoskDialogText : MonoBehaviour
         if (VoskSpeechToText != null)
         {
             VoskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
-            
-            // Subscribe to VoiceProcessor events
-            if (VoskSpeechToText.VoiceProcessor != null)
-            {
-                VoskSpeechToText.VoiceProcessor.OnRecordingStop += OnSilenceTimerComplete;
-            }
         }
         else
         {
@@ -44,18 +37,7 @@ public class VoskDialogText : MonoBehaviour
         if (VoskSpeechToText != null)
         {
             VoskSpeechToText.OnTranscriptionResult -= OnTranscriptionResult;
-            
-            if (VoskSpeechToText.VoiceProcessor != null)
-            {
-                VoskSpeechToText.VoiceProcessor.OnRecordingStop -= OnSilenceTimerComplete;
-            }
         }
-    }
-
-    private void OnSilenceTimerComplete()
-    {
-        Debug.Log("Silence timer completed - marking for new phrase");
-        isNewPhrase = true;
     }
 
     private void OnTranscriptionResult(string obj)
@@ -67,17 +49,8 @@ public class VoskDialogText : MonoBehaviour
         {
             if (!string.IsNullOrEmpty(phrase.Text))
             {
-                if (isNewPhrase)
-                {
-                    // Replace text after silence timer completion
-                    DisplayDialogue("", phrase.Text);
-                    isNewPhrase = false;
-                }
-                else
-                {
-                    // Append during short pauses
-                    AppendDialogue(phrase.Text);
-                }
+                // Always append - continuous recognition
+                AppendDialogue(phrase.Text);
                 return;
             }
         }

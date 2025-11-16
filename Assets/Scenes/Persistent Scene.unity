@@ -323,8 +323,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selectedDevice: 
-  _minimumSpeakingSampleValue: 0.1
-  _silenceTimer: 5
+  _minimumSpeakingSampleValue: 0.05
   _autoDetect: 1
 --- !u!114 &450954872
 MonoBehaviour:
