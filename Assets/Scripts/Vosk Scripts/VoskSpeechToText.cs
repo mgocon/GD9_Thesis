@@ -339,7 +339,7 @@ public class VoskSpeechToText : MonoBehaviour
 
     private void VoiceProcessorOnOnRecordingStart()
     {
-        Debug.Log("Recording Started / Speech detected");
+        Debug.Log("Recording Started");
         if (!_running)
         {
             _running = true;
@@ -349,9 +349,8 @@ public class VoskSpeechToText : MonoBehaviour
 
     private void VoiceProcessorOnOnRecordingStop()
     {
-        Debug.Log("Silence timer completed - next result will be new phrase");
-        // Don't call FinalResult() - let recognition continue
-        // Just signal that next result should be treated as new phrase
+        Debug.Log("Recording Stopped");
+        // Just continue recognition - no special handling needed
     }
 
     // Background worker (no async/await)

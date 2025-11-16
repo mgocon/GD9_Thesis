@@ -99,16 +99,11 @@ public class VoiceProcessor : MonoBehaviour
     [SerializeField, Tooltip("The minimum volume to detect voice input for"), Range(0.0f, 1.0f)]
     private float _minimumSpeakingSampleValue = 0.05f;
 
-    [SerializeField, Tooltip("Time in seconds of detected silence before voice request is sent")]
-    private float _silenceTimer = 1.0f;
-
     [SerializeField, Tooltip("Auto detect speech using the volume threshold.")]
     private bool _autoDetect;
 
-    private float _timeAtSilenceBegan;
     private bool _audioDetected;
     private bool _didDetect;
-    private bool _transmit;
     private List<short[]> _bufferedFrames = new List<short[]>(); // Buffer to store frames
 
     AudioClip _audioClip;
@@ -299,67 +294,9 @@ public class VoiceProcessor : MonoBehaviour
                 pcmBuffer[i] = (short) Math.Floor(sampleBuffer[i] * short.MaxValue);
             }
             
-            if (_autoDetect == false)
-            {
-                _audioDetected = true;
-                
-                // Send frames immediately when auto-detect is off
-                if (OnFrameCaptured != null)
-                    OnFrameCaptured.Invoke(pcmBuffer);
-            }
-            else
-            {
-                float maxVolume = 0.0f;
-
-                for (int i = 0; i < sampleBuffer.Length; i++)
-                {
-                    if (sampleBuffer[i] > maxVolume)
-                    {
-                        maxVolume = sampleBuffer[i];
-                    }
-                }
-
-                if (maxVolume >= _minimumSpeakingSampleValue)
-                {
-                    // Speech detected
-                    if (!_audioDetected)
-                    {
-                        _audioDetected = true;
-                        _didDetect = true;
-                    }
-                    
-                    // Send frame immediately
-                    if (OnFrameCaptured != null)
-                        OnFrameCaptured.Invoke(pcmBuffer);
-                    
-                    _timeAtSilenceBegan = Time.time;
-                }
-                else
-                {
-                    // No speech detected - still send frames for continuous recognition
-                    if (_audioDetected)
-                    {
-                        // Send frame even during silence
-                        if (OnFrameCaptured != null)
-                            OnFrameCaptured.Invoke(pcmBuffer);
-                        
-                        // Check if silence timer has elapsed
-                        if (Time.time - _timeAtSilenceBegan > _silenceTimer)
-                        {
-                            Debug.Log($"Silence timer complete ({_silenceTimer}s)");
-                            
-                            // Trigger recording stop - this signals end of phrase
-                            if (OnRecordingStop != null)
-                                OnRecordingStop.Invoke();
-                            
-
-                            // Reset state for next phrase
-                            _audioDetected = false;
-                            _didDetect = false;
-                        }
-                    }
-                }
-            }
+            // Always send frames for continuous recognition
+            if (OnFrameCaptured != null)
+                OnFrameCaptured.Invoke(pcmBuffer);
         }
 
         if (OnRecordingStop != null)
