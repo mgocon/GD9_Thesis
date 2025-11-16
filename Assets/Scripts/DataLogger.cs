@@ -178,29 +178,28 @@ public class DataLogger : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             
             fullPath = Path.Combine(Application.persistentDataPath, fileName);
-            Debug.Log($"📄 DataLogger: All data will be saved to {fullPath}");
+            Debug.Log($"📄 DataLogger: CSV path set to: {fullPath}");
 
-            // --- RESET FILE AND PLAY COUNTS ON LAUNCH ---
+            // --- MODIFIED: Only delete if file exists, don't throw errors ---
             try
             {
-                // 1. Delete the old CSV file
+                // 1. Delete the old CSV file if it exists
                 if (File.Exists(fullPath))
                 {
                     File.Delete(fullPath);
-                    Debug.Log("DataLogger: Deleted old CSV file.");
+                    Debug.Log("📄 Deleted old CSV file.");
                 }
 
-                // 2. Reset the playthrough counts
-                PlayerPrefs.DeleteKey($"PlayCount_{GetLevelNameFromSceneName("Entry Level")}");
-                PlayerPrefs.DeleteKey($"PlayCount_{GetLevelNameFromSceneName("SENIORLEVEL_SCENE")}");
+                // 2. Reset the playthrough counts (safe even if keys don't exist)
+                PlayerPrefs.DeleteKey($"PlayCount_Entry Level");
+                PlayerPrefs.DeleteKey($"PlayCount_Senior Level");
                 PlayerPrefs.Save();
-                Debug.Log("DataLogger: Reset playthrough counts for Entry and Senior levels.");
+                Debug.Log("🔄 Reset playthrough counts for Entry and Senior levels.");
             }
             catch (Exception ex)
             {
                 Debug.LogError($"DataLogger: Error during reset: {ex.Message}");
             }
-            // --- END OF RESET ---
 
             // Listen to scene load events
             SceneManager.sceneLoaded += OnAnySceneLoaded;

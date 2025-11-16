@@ -140,23 +140,35 @@ public class VoskSpeechToText : MonoBehaviour
 
     private IEnumerator Decompress()
     {
-        string persistentPath = Application.persistentDataPath;
+        // Use a fixed folder name instead of relying on Product Name
+        string persistentPath = Path.Combine(Application.persistentDataPath, "VoskModels");
+        
+        // Create the VoskModels directory if it doesn't exist
+        if (!Directory.Exists(persistentPath))
+        {
+            Directory.CreateDirectory(persistentPath);
+        }
+        
         string modelFolderName = Path.GetFileNameWithoutExtension(ModelPath);
         string existingPath = Path.Combine(persistentPath, modelFolderName);
 
-        // Already decompressed
-        if (!Path.HasExtension(ModelPath) || Directory.Exists(existingPath))
+        Debug.Log($"Checking for model at: {existingPath}");
+
+        // Check if already decompressed
+        if (!Path.HasExtension(ModelPath) || (Directory.Exists(existingPath) && Directory.GetFiles(existingPath, "*", SearchOption.AllDirectories).Length > 0))
         {
-            OnStatusUpdated?.Invoke("Using existing decompressed model.");
+            Debug.Log($"✅ Model already decompressed");
             _decompressedModelPath = existingPath;
             yield break;
         }
 
-        OnStatusUpdated?.Invoke("Decompressing model...");
+        Debug.Log($"Decompressing model...");
         string dataPath = Path.Combine(Application.streamingAssetsPath, ModelPath);
+        Debug.Log($"Decompressing model from: {dataPath}");
 
         byte[] zipBytes = null;
         bool needsBytes = dataPath.Contains("://");
+        
         if (needsBytes)
         {
             UnityWebRequest www = UnityWebRequest.Get(dataPath);
@@ -180,16 +192,19 @@ public class VoskSpeechToText : MonoBehaviour
                 {
                     using (var ms = new MemoryStream(zipBytes))
                     using (var zipFile = ZipFile.Read(ms))
-                        zipFile.ExtractAll(persistentPath);
+                        zipFile.ExtractAll(persistentPath, ExtractExistingFileAction.OverwriteSilently);
                 }
                 else
                 {
                     using (var stream = File.OpenRead(dataPath))
                     using (var zipFile = ZipFile.Read(stream))
-                        zipFile.ExtractAll(persistentPath);
+                        zipFile.ExtractAll(persistentPath, ExtractExistingFileAction.OverwriteSilently);
                 }
             }
-            catch (Exception ex) { decompressError = ex; }
+            catch (Exception ex) 
+            { 
+                decompressError = ex; 
+            }
         });
 
         while (!decompressTask.IsCompleted)
@@ -197,12 +212,22 @@ public class VoskSpeechToText : MonoBehaviour
 
         if (decompressError != null)
         {
-            Debug.LogError("Error while decompressing Vosk model: " + decompressError);
+            Debug.LogError($"❌ Error decompressing model: {decompressError.Message}");
             yield break;
         }
 
         _decompressedModelPath = existingPath;
-        OnStatusUpdated?.Invoke("Decompressing complete!");
+        
+        // Verify extraction
+        if (Directory.Exists(existingPath))
+        {
+            int fileCount = Directory.GetFiles(existingPath, "*", SearchOption.AllDirectories).Length;
+            Debug.Log($"✅ Model decompressed to: {existingPath} ({fileCount} files)");
+        }
+        else
+        {
+            Debug.LogError($"❌ Decompression failed - directory not created: {existingPath}");
+        }
     }
 
     private IEnumerator LoadModelAsync()
