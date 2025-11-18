@@ -107,48 +107,74 @@ public class DataLogger : MonoBehaviour
         // MODIFIED: Updated to match new column count (removed SceneName)
         public static CsvRow FromCsvLine(string line)
         {
-            string[] values = line.Split(',');
-
-            string Unescape(string s)
+            // ✅ Better CSV parsing that handles quoted fields with commas
+            List<string> values = new List<string>();
+            bool inQuotes = false;
+            StringBuilder currentValue = new StringBuilder();
+            
+            for (int i = 0; i < line.Length; i++)
             {
-                if (s.StartsWith("\"") && s.EndsWith("\""))
+                char c = line[i];
+                
+                if (c == '"')
                 {
-                    s = s.Substring(1, s.Length - 2);
-                    s = s.Replace("\"\"", "\"");
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        // Escaped quote
+                        currentValue.Append('"');
+                        i++; // Skip next quote
+                    }
+                    else
+                    {
+                        // Toggle quote state
+                        inQuotes = !inQuotes;
+                    }
                 }
-                return s;
+                else if (c == ',' && !inQuotes)
+                {
+                    // End of field
+                    values.Add(currentValue.ToString());
+                    currentValue.Clear();
+                }
+                else
+                {
+                    currentValue.Append(c);
+                }
             }
+            
+            // Add last field
+            values.Add(currentValue.ToString());
 
             try
             {
                 return new CsvRow
                 {
-                    Timestamp = Unescape(values[0]),
-                    LevelName = Unescape(values[1]),
+                    Timestamp = values[0],
+                    LevelName = values[1],
                     PlaythroughNumber = int.TryParse(values[2], out int pn) ? pn : 0,
-                    RowType = Unescape(values[3]),
-                    Algorithm = Unescape(values[4]),
-                    Question = Unescape(values[5]),
-                    PlayerAnswer = Unescape(values[6]),
-                    SentenceIndex = int.TryParse(Unescape(values[7]), out int si) ? si : -1,
+                    RowType = values[3],
+                    Algorithm = values[4],
+                    Question = values[5],
+                    PlayerAnswer = values[6],
+                    SentenceIndex = int.TryParse(values[7], out int si) ? si : -1,
                     
-                    DQN_Confidence = Unescape(values[8]),
-                    DQN_Clarity = Unescape(values[9]),
-                    DQN_Pace = Unescape(values[10]),
-                    DQN_Tone = Unescape(values[11]),
-                    DQN_Overall = Unescape(values[12]),
+                    DQN_Confidence = values[8],
+                    DQN_Clarity = values[9],
+                    DQN_Pace = values[10],
+                    DQN_Tone = values[11],
+                    DQN_Overall = values[12],
                     
-                    PPO_Confidence = Unescape(values[13]),
-                    PPO_Clarity = Unescape(values[14]),
-                    PPO_Pace = Unescape(values[15]),
-                    PPO_Tone = Unescape(values[16]),
-                    PPO_Overall = Unescape(values[17]),
+                    PPO_Confidence = values[13],
+                    PPO_Clarity = values[14],
+                    PPO_Pace = values[15],
+                    PPO_Tone = values[16],
+                    PPO_Overall = values[17],
                     
-                    Session_Confidence = Unescape(values[18]),
-                    Session_Clarity = Unescape(values[19]),
-                    Session_Pace = Unescape(values[20]),
-                    Session_Tone = Unescape(values[21]),
-                    Session_Overall = Unescape(values[22]),
+                    Session_Confidence = values[18],
+                    Session_Clarity = values[19],
+                    Session_Pace = values[20],
+                    Session_Tone = values[21],
+                    Session_Overall = values[22],
                 };
             }
             catch (Exception ex)
@@ -164,8 +190,26 @@ public class DataLogger : MonoBehaviour
             {
                 return "\"\"";
             }
-            s = s.Replace("\n", " ").Replace("\r", " ");
+            
+            // Clean up the string
+            s = s.Trim();
+            
+            // Replace newlines and tabs with spaces
+            s = s.Replace("\r\n", " ")
+                 .Replace("\n", " ")
+                 .Replace("\r", " ")
+                 .Replace("\t", " ");
+            
+            // Replace multiple spaces with single space
+            while (s.Contains("  "))
+            {
+                s = s.Replace("  ", " ");
+            }
+            
+            // Escape quotes by doubling them (CSV standard)
             s = s.Replace("\"", "\"\"");
+            
+            // Always wrap in quotes (handles commas, quotes, and special characters)
             return $"\"{s}\"";
         }
     }
