@@ -28,10 +28,11 @@ public class DataLogger : MonoBehaviour
     private List<CsvRow> csvData = new List<CsvRow>();
     private readonly object dataLock = new object();
 
-    // MODIFIED: Removed "Scene Name" column
+    // MODIFIED: Removed "Scene Name" column and added speed columns
     private const string CsvHeader = "Timestamp,Level Name,PlaythroughNumber,RowType,Algorithm Chosen,Question/Dialogue,Player Answer,Sentence Index," +
                                      "DQN_Confidence,DQN_Clarity,DQN_Pace,DQN_Tone,DQN_Overall," +
                                      "PPO_Confidence,PPO_Clarity,PPO_Pace,PPO_Tone,PPO_Overall," +
+                                     "DQN_LastMs,DQN_AvgMs,PPO_LastMs,PPO_AvgMs," +
                                      "Session_Confidence,Session_Clarity,Session_Pace,Session_Tone,Session_Overall";
 
 
@@ -60,6 +61,12 @@ public class DataLogger : MonoBehaviour
         public string PPO_Pace = string.Empty;
         public string PPO_Tone = string.Empty;
         public string PPO_Overall = string.Empty;
+
+        // NEW: Fields for speed (milliseconds)
+        public string DQN_LastMs = string.Empty;
+        public string DQN_AvgMs = string.Empty;
+        public string PPO_LastMs = string.Empty;
+        public string PPO_AvgMs = string.Empty;
         
         // NEW: Fields for Session summary (used in the final summary row)
         public string Session_Confidence = string.Empty;
@@ -95,6 +102,11 @@ public class DataLogger : MonoBehaviour
                 Escape(PPO_Pace),
                 Escape(PPO_Tone),
                 Escape(PPO_Overall),
+                // Speeds
+                Escape(DQN_LastMs),
+                Escape(DQN_AvgMs),
+                Escape(PPO_LastMs),
+                Escape(PPO_AvgMs),
                 // Session
                 Escape(Session_Confidence),
                 Escape(Session_Clarity),
@@ -169,12 +181,17 @@ public class DataLogger : MonoBehaviour
                     PPO_Pace = values[15],
                     PPO_Tone = values[16],
                     PPO_Overall = values[17],
+                    // Speeds (may be empty if older files)
+                    DQN_LastMs = values.Count > 18 ? values[18] : string.Empty,
+                    DQN_AvgMs = values.Count > 19 ? values[19] : string.Empty,
+                    PPO_LastMs = values.Count > 20 ? values[20] : string.Empty,
+                    PPO_AvgMs = values.Count > 21 ? values[21] : string.Empty,
                     
-                    Session_Confidence = values[18],
-                    Session_Clarity = values[19],
-                    Session_Pace = values[20],
-                    Session_Tone = values[21],
-                    Session_Overall = values[22],
+                    Session_Confidence = values.Count > 22 ? values[22] : string.Empty,
+                    Session_Clarity = values.Count > 23 ? values[23] : string.Empty,
+                    Session_Pace = values.Count > 24 ? values[24] : string.Empty,
+                    Session_Tone = values.Count > 25 ? values[25] : string.Empty,
+                    Session_Overall = values.Count > 26 ? values[26] : string.Empty,
                 };
             }
             catch (Exception ex)
@@ -524,6 +541,17 @@ public class DataLogger : MonoBehaviour
                 existingRow.PPO_Tone = ppo.currentPerformance.tone.ToString("F2");
                 existingRow.PPO_Overall = ppo.currentPerformance.overall.ToString("F2");
                 
+                // Log current speed stats (if available)
+                var fm = FeedbackManager.Instance;
+                if (fm != null)
+                {
+                    var speedStats = fm.GetSpeedStats();
+                    existingRow.DQN_LastMs = speedStats.dqnLast.ToString("F2");
+                    existingRow.DQN_AvgMs = speedStats.dqnAvg.ToString("F2");
+                    existingRow.PPO_LastMs = speedStats.ppoLast.ToString("F2");
+                    existingRow.PPO_AvgMs = speedStats.ppoAvg.ToString("F2");
+                }
+                
                 Debug.Log($"📈 Logged PPO/DQN scores for question: {currentQuestion}");
             }
         }
@@ -576,6 +604,12 @@ public class DataLogger : MonoBehaviour
                 Session_Pace = sessionBreakdown.avgPace.ToString("F2"),
                 Session_Tone = sessionBreakdown.avgTone.ToString("F2"),
                 Session_Overall = sessionBreakdown.avgOverall.ToString("F2")
+                ,
+                // Speed summary (ms)
+                DQN_LastMs = FeedbackManager.Instance.LastDQNInferenceTime.ToString("F2"),
+                DQN_AvgMs = FeedbackManager.Instance.AverageDQNInferenceTime.ToString("F2"),
+                PPO_LastMs = FeedbackManager.Instance.LastPPOInferenceTime.ToString("F2"),
+                PPO_AvgMs = FeedbackManager.Instance.AveragePPOInferenceTime.ToString("F2")
             };
             
             csvData.Add(summaryRow);
