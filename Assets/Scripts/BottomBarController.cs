@@ -313,15 +313,27 @@ public class BottomBarController : MonoBehaviour
         // Show the game summary screen first
         if (gameSummaryScreen != null)
         {
-            Debug.Log("GameSummaryScreen found, calling ShowSummary()");
+            Debug.Log($"GameSummaryScreen found (active={gameSummaryScreen.gameObject.activeSelf}), calling ShowSummary()");
+            
+            // Ensure the GameSummaryScreen GameObject is active
+            if (!gameSummaryScreen.gameObject.activeSelf)
+            {
+                Debug.Log("Activating GameSummaryScreen GameObject");
+                gameSummaryScreen.gameObject.SetActive(true);
+            }
+            
             gameSummaryScreen.ShowSummary();
         }
         else
         {
-            Debug.LogWarning("GameSummaryScreen is NULL in BottomBarController!");
+            Debug.LogError("GameSummaryScreen is NULL in BottomBarController! Please assign it in the Inspector.");
         }
         
-        if (endBox == null) return;
+        if (endBox == null)
+        {
+            Debug.LogWarning("endBox is NULL in BottomBarController!");
+            return;
+        }
 
         if (endBoxCoroutine != null)
         {
@@ -330,11 +342,19 @@ public class BottomBarController : MonoBehaviour
         }
 
         // Use SlideBox with upward movement for the end box
+        Debug.Log("Starting endBox slide animation");
         endBoxCoroutine = StartCoroutine(SlideBox(endBox, true, Vector2.up, endBoxDistance, endBoxDuration, () => endBoxCoroutine = null));
 
         // Ensure the end button is interactable
         if (endBoxButton != null)
+        {
             endBoxButton.interactable = true;
+            Debug.Log("endBoxButton set to interactable");
+        }
+        else
+        {
+            Debug.LogWarning("endBoxButton is NULL!");
+        }
     }
 
     public void HideEndPopup()

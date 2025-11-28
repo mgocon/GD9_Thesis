@@ -26,6 +26,7 @@ public class GameSummaryScreen : MonoBehaviour
 
     private FeedbackManager feedbackManager;
     private List<GameObject> questionItems = new List<GameObject>();
+    private bool hasBeenInitialized = false; // Track if Start() has already run
     [Header("Graph")]
     [SerializeField] private RectTransform graphContainer;
     [SerializeField] private Color graphBarColor = new Color(0.3f, 0.6f, 1f);
@@ -53,10 +54,23 @@ public class GameSummaryScreen : MonoBehaviour
 
     private void Start()
     {
+        // Only run initialization once to avoid deactivating summaryPanel if ShowSummary() was called first
+        if (hasBeenInitialized)
+        {
+            Debug.Log("GameSummaryScreen.Start: Already initialized, skipping");
+            return;
+        }
+        
+        hasBeenInitialized = true;
         feedbackManager = FeedbackManager.Instance;
         
-        if (summaryPanel != null)
+        // Only deactivate summaryPanel if it's active at game start
+        // Don't deactivate if ShowSummary() already activated it
+        if (summaryPanel != null && summaryPanel.activeSelf)
+        {
+            Debug.Log("GameSummaryScreen.Start: summaryPanel was active, deactivating it");
             summaryPanel.SetActive(false);
+        }
     }
 
     /// <summary>
@@ -65,6 +79,26 @@ public class GameSummaryScreen : MonoBehaviour
     public void ShowSummary()
     {
         Debug.Log("=== GameSummaryScreen.ShowSummary() called ===");
+        
+        // Mark as initialized to prevent Start() from deactivating the panel
+        hasBeenInitialized = true;
+        
+        // CRITICAL FIX: Ensure this GameObject and summaryPanel are active FIRST
+        if (summaryPanel != null)
+        {
+            Debug.Log($"Activating summaryPanel: {summaryPanel.name}");
+            summaryPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("summaryPanel is NULL! Cannot show summary screen.");
+            // Try to activate this GameObject as fallback
+            if (!gameObject.activeSelf)
+            {
+                gameObject.SetActive(true);
+                Debug.Log("Activated GameSummaryScreen GameObject as fallback");
+            }
+        }
         
         // Get FeedbackManager instance (handles persistent scene case)
         if (feedbackManager == null)
@@ -86,13 +120,11 @@ public class GameSummaryScreen : MonoBehaviour
         {
             Debug.LogError("Could not find FeedbackManager! Make sure the Persistent scene is loaded.");
             
-            // Show a helpful message to the player
+            // Show a helpful message to the player - panel is already active from above
             if (titleText != null)
                 titleText.text = "<b>Error: FeedbackManager Not Found</b>";
             if (overallScoreText != null)
                 overallScoreText.text = "Please start the game from the Main Menu";
-            if (summaryPanel != null)
-                summaryPanel.SetActive(true);
             
             return;
         }
@@ -208,18 +240,19 @@ public class GameSummaryScreen : MonoBehaviour
         // TODO: Add individual question scores if FeedbackManager tracks them
         // For now, we show the summary stats
 
-        // Show panel
+        // Panel is already active from the beginning of ShowSummary()
+        // Just need to render the graph now that layout is ready
+        Debug.Log("Summary panel was already activated at start of ShowSummary!");
+        
+        // Force a layout rebuild to ensure rect sizes are available
         if (summaryPanel != null)
         {
-            summaryPanel.SetActive(true);
-            Debug.Log("Summary panel activated!");
-            // Render performance graph once the panel is active (rect sizes available)
-            RenderPerformanceGraph();
+            Canvas.ForceUpdateCanvases();
+            UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(summaryPanel.GetComponent<RectTransform>());
         }
-        else
-        {
-            Debug.LogWarning("summaryPanel is NULL!");
-        }
+        
+        // Render performance graph once the panel is active (rect sizes available)
+        RenderPerformanceGraph();
     }
 
     /// <summary>
