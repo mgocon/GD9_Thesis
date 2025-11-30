@@ -191,11 +191,17 @@ public class FeedbackComparisonUI : MonoBehaviour
             float ppoOverall = currentPPOFeedback.currentPerformance.overall;
             float averageOverall = (dqnOverall + ppoOverall) / 2f;
             int percentage = Mathf.RoundToInt(averageOverall * 100f);
-            
+
             Color scoreColor = GetScoreColor(averageOverall);
             string hexColor = ColorUtility.ToHtmlStringRGB(scoreColor);
-            
+
             overallQuestionScoreText.text = $"<b>Overall Question Score:</b> <color=#{hexColor}>{percentage}%</color>";
+
+            // Ensure the bar graph will use the same overall score that the player sees
+            if (FeedbackManager.Instance != null)
+            {
+                FeedbackManager.Instance.SetNextHistoryOverall(averageOverall);
+            }
         }
 
         // Enable buttons

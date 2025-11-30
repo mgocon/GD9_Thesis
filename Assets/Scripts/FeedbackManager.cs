@@ -57,6 +57,8 @@ public class FeedbackManager : MonoBehaviour
     private List<FeedbackAction> feedbackHistory = new List<FeedbackAction>();
     // Cached overall scores for quick graphing
     private List<float> overallHistory = new List<float>();
+    // If set, this value will be used for the next recorded history entry's overall
+    private float? pendingDisplayedOverall = null;
 
     // Speed tracking for algorithms
     public float LastDQNInferenceTime { get; private set; }
@@ -504,7 +506,16 @@ public class FeedbackManager : MonoBehaviour
         feedbackHistory.Add(action);
 
         // Keep a parallel list of overall scores for easy access by UI graphs
-        overallHistory.Add(performance.overall);
+        // Prefer the displayed overall (set by the comparison UI) if provided
+        float overallToAdd = performance.overall;
+        if (pendingDisplayedOverall.HasValue)
+        {
+            overallToAdd = Mathf.Clamp01(pendingDisplayedOverall.Value);
+            pendingDisplayedOverall = null;
+            if (verboseLogging)
+                Debug.Log($"FeedbackManager: using displayed overall {overallToAdd:F2} for history entry");
+        }
+        overallHistory.Add(overallToAdd);
 
         if (performanceHistory.Count > maxHistorySize)
         {
@@ -605,6 +616,17 @@ public class FeedbackManager : MonoBehaviour
     public void RecordPerformanceScore(InterviewPerformance performance)
     {
         UpdateSessionScore(performance);
+    }
+
+    /// <summary>
+    /// Set the overall score that should be used for the next history entry.
+    /// This allows the UI (comparison) to dictate what the bar graph will display.
+    /// </summary>
+    public void SetNextHistoryOverall(float overallDisplayed)
+    {
+        pendingDisplayedOverall = overallDisplayed;
+        if (verboseLogging)
+            Debug.Log($"FeedbackManager: pendingDisplayedOverall set to {overallDisplayed:F2}");
     }
 
     /// <summary>
