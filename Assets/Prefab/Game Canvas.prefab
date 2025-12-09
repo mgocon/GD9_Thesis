@@ -352,7 +352,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 360.6, y: 0.00001049}
+  m_AnchoredPosition: {x: 360.6, y: 0}
   m_SizeDelta: {x: 721.2, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8236394226131204452
@@ -1468,7 +1468,7 @@ GameObject:
   - component: {fileID: 1853152897262730473}
   - component: {fileID: 1980951620130188240}
   m_Layer: 5
-  m_Name: End
+  m_Name: End Container
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1544,7 +1544,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d4b7ab128d3f1140bbba48cffd0ffc6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  summaryPanel: {fileID: 0}
+  summaryPanel: {fileID: 1120411945468509507}
   titleText: {fileID: 5226332698600457100}
   overallScoreText: {fileID: 1205233659676049596}
   totalQuestionsText: {fileID: 3718465359270040565}
@@ -1555,6 +1555,17 @@ MonoBehaviour:
   excellentColor: {r: 0.2, g: 0.8, b: 0.2, a: 1}
   goodColor: {r: 1, g: 0.8, b: 0.2, a: 1}
   needsImprovementColor: {r: 0.9, g: 0.3, b: 0.3, a: 1}
+  graphContainer: {fileID: 8631053176341938372}
+  graphBarColor: {r: 0, g: 0.68235296, b: 0.93725497, a: 1}
+  barSpacing: 6
+  minBarWidth: 20
+  allowScrollExpansion: 1
+  maxBarHeightPercent: 0.92
+  levelStepPercent: 0
+  drawGridLines: 0
+  gridLineColor: {r: 1, g: 1, b: 1, a: 0.12}
+  gridLineThickness: 2
+  showLevelLabels: 0
 --- !u!1 &1157245958103883715
 GameObject:
   m_ObjectHideFlags: 0
@@ -6014,6 +6025,81 @@ RectTransform:
   m_AnchoredPosition: {x: -5, y: 0}
   m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &5069605026346724351
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8631053176341938372}
+  - component: {fileID: 7332793765911560128}
+  - component: {fileID: 477172449302051239}
+  m_Layer: 5
+  m_Name: Image
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &8631053176341938372
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5069605026346724351}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1001793413286151702}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 392.09, y: -197}
+  m_SizeDelta: {x: 784.182, y: 235.254}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &7332793765911560128
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5069605026346724351}
+  m_CullTransparentMesh: 1
+--- !u!114 &477172449302051239
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5069605026346724351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.039215688}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &5141939720677803413
 GameObject:
   m_ObjectHideFlags: 0
@@ -11903,6 +11989,7 @@ RectTransform:
   - {fileID: 9066677080604466000}
   - {fileID: 8888095620932211367}
   - {fileID: 1937454986175859323}
+  - {fileID: 8631053176341938372}
   m_Father: {fileID: 2224223381284685508}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}

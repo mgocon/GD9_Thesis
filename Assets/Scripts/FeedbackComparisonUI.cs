@@ -191,11 +191,17 @@ public class FeedbackComparisonUI : MonoBehaviour
             float ppoOverall = currentPPOFeedback.currentPerformance.overall;
             float averageOverall = (dqnOverall + ppoOverall) / 2f;
             int percentage = Mathf.RoundToInt(averageOverall * 100f);
-            
+
             Color scoreColor = GetScoreColor(averageOverall);
             string hexColor = ColorUtility.ToHtmlStringRGB(scoreColor);
-            
+
             overallQuestionScoreText.text = $"<b>Overall Question Score:</b> <color=#{hexColor}>{percentage}%</color>";
+
+            // Ensure the bar graph will use the same overall score that the player sees
+            if (FeedbackManager.Instance != null)
+            {
+                FeedbackManager.Instance.SetNextHistoryOverall(averageOverall);
+            }
         }
 
         // Enable buttons
@@ -224,18 +230,36 @@ public class FeedbackComparisonUI : MonoBehaviour
         if (message != null)
             message.text = feedback.message;
 
+        // The UI now focuses on the feedback message only.
+        // Hide detailed numeric/stat widgets (sliders and value labels) to keep comparison minimal.
         if (performanceText != null)
         {
-            performanceText.text = $"Overall: {(feedback.currentPerformance.overall * 100):F0}%\n" +
-                                   $"Confidence: {(feedback.confidence * 100):F0}%";
+            performanceText.text = ""; // remove numeric summary from the popup
         }
 
-        // Set performance bars with value labels (Overall doesn't need a label - it's shown in performanceText)
-        UpdateSlider(confidenceBar, feedback.currentPerformance.confidence, confidenceValue);
-        UpdateSlider(clarityBar, feedback.currentPerformance.clarity, clarityValue);
-        UpdateSlider(paceBar, feedback.currentPerformance.pace, paceValue);
-        UpdateSlider(toneBar, feedback.currentPerformance.tone, toneValue);
-        UpdateSlider(overallBar, feedback.currentPerformance.overall);
+        // Disable slider visuals and numeric labels if they exist
+        HideStatWidgets(confidenceBar, clarityBar, paceBar, toneBar, overallBar,
+                        confidenceValue, clarityValue, paceValue, toneValue);
+    }
+
+    /// <summary>
+    /// Hide the slider widgets and their numeric labels so the comparison boxes only show message text.
+    /// </summary>
+    private void HideStatWidgets(Slider confidence, Slider clarity, Slider pace, Slider tone, Slider overall,
+                                 TextMeshProUGUI confidenceLabel, TextMeshProUGUI clarityLabel,
+                                 TextMeshProUGUI paceLabel, TextMeshProUGUI toneLabel)
+    {
+        // Sliders may be missing in some layouts; guard each.
+        if (confidence != null) confidence.gameObject.SetActive(false);
+        if (clarity != null) clarity.gameObject.SetActive(false);
+        if (pace != null) pace.gameObject.SetActive(false);
+        if (tone != null) tone.gameObject.SetActive(false);
+        if (overall != null) overall.gameObject.SetActive(false);
+
+        if (confidenceLabel != null) confidenceLabel.gameObject.SetActive(false);
+        if (clarityLabel != null) clarityLabel.gameObject.SetActive(false);
+        if (paceLabel != null) paceLabel.gameObject.SetActive(false);
+        if (toneLabel != null) toneLabel.gameObject.SetActive(false);
     }
 
     private void UpdateSlider(Slider slider, float value, TextMeshProUGUI valueLabel = null)

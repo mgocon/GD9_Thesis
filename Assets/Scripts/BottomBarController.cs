@@ -313,15 +313,27 @@ public class BottomBarController : MonoBehaviour
         // Show the game summary screen first
         if (gameSummaryScreen != null)
         {
-            Debug.Log("GameSummaryScreen found, calling ShowSummary()");
+            Debug.Log($"GameSummaryScreen found (active={gameSummaryScreen.gameObject.activeSelf}), calling ShowSummary()");
+            
+            // Ensure the GameSummaryScreen GameObject is active
+            if (!gameSummaryScreen.gameObject.activeSelf)
+            {
+                Debug.Log("Activating GameSummaryScreen GameObject");
+                gameSummaryScreen.gameObject.SetActive(true);
+            }
+            
             gameSummaryScreen.ShowSummary();
         }
         else
         {
-            Debug.LogWarning("GameSummaryScreen is NULL in BottomBarController!");
+            Debug.LogError("GameSummaryScreen is NULL in BottomBarController! Please assign it in the Inspector.");
         }
         
-        if (endBox == null) return;
+        if (endBox == null)
+        {
+            Debug.LogWarning("endBox is NULL in BottomBarController!");
+            return;
+        }
 
         if (endBoxCoroutine != null)
         {
@@ -330,11 +342,19 @@ public class BottomBarController : MonoBehaviour
         }
 
         // Use SlideBox with upward movement for the end box
+        Debug.Log("Starting endBox slide animation");
         endBoxCoroutine = StartCoroutine(SlideBox(endBox, true, Vector2.up, endBoxDistance, endBoxDuration, () => endBoxCoroutine = null));
 
         // Ensure the end button is interactable
         if (endBoxButton != null)
+        {
             endBoxButton.interactable = true;
+            Debug.Log("endBoxButton set to interactable");
+        }
+        else
+        {
+            Debug.LogWarning("endBoxButton is NULL!");
+        }
     }
 
     public void HideEndPopup()
@@ -480,6 +500,8 @@ public class BottomBarController : MonoBehaviour
         {
             feedbackManager.RecordDQNScore(lastDQNFeedback.currentPerformance);
             feedbackManager.RecordPerformanceScore(lastDQNFeedback.currentPerformance);
+            // Record into history as the player's chosen performance (so summaries/graphs include it)
+            feedbackManager.RecordPerformanceHistory(lastDQNFeedback.currentPerformance, lastDQNFeedback.action);
             Debug.Log("Recorded DQN and session performance for chosen feedback.");
         }
 
@@ -518,6 +540,8 @@ public class BottomBarController : MonoBehaviour
         {
             feedbackManager.RecordPPOScore(lastPPOFeedback.currentPerformance);
             feedbackManager.RecordPerformanceScore(lastPPOFeedback.currentPerformance);
+            // Record into history as the player's chosen performance (so summaries/graphs include it)
+            feedbackManager.RecordPerformanceHistory(lastPPOFeedback.currentPerformance, lastPPOFeedback.action);
             Debug.Log("Recorded PPO and session performance for chosen feedback.");
         }
 
@@ -569,6 +593,8 @@ public class BottomBarController : MonoBehaviour
             avg.overall = (lastDQNFeedback.currentPerformance.overall + lastPPOFeedback.currentPerformance.overall) / 2f;
 
             feedbackManager.RecordPerformanceScore(avg);
+            // Record averaged performance into history as 'Neither' choice
+            feedbackManager.RecordPerformanceHistory(avg, FeedbackAction.MaintainCurrentApproach);
             Debug.Log("Recorded averaged session performance for 'Neither' choice.");
         }
 
@@ -658,13 +684,13 @@ public class BottomBarController : MonoBehaviour
         // Calculate response duration
         float responseDuration = Time.time - responseStartTime;
 
-    // Generate DQN feedback WITHOUT updating session totals (we'll record when player chooses)
+    // Generate DQN feedback WITHOUT updating session totals or recording history
     feedbackManager.SetModelType(FeedbackManager.ModelType.DQN);
-    lastDQNFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
+    lastDQNFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false, recordHistory: false);
 
-    // Generate PPO feedback WITHOUT updating session totals
+    // Generate PPO feedback WITHOUT updating session totals or recording history
     feedbackManager.SetModelType(FeedbackManager.ModelType.PPO);
-    lastPPOFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false);
+    lastPPOFeedback = feedbackManager.GenerateFeedback(currentTranscription, responseDuration, updateSessionScore: false, recordHistory: false);
 
         // --- NEW: Log feedback scores to data logger ---
         DataLogger.Instance?.LogFeedbackScores(lastDQNFeedback, lastPPOFeedback);

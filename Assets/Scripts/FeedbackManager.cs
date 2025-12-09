@@ -55,6 +55,10 @@ public class FeedbackManager : MonoBehaviour
     // Performance history
     private List<InterviewPerformance> performanceHistory = new List<InterviewPerformance>();
     private List<FeedbackAction> feedbackHistory = new List<FeedbackAction>();
+    // Cached overall scores for quick graphing
+    private List<float> overallHistory = new List<float>();
+    // If set, this value will be used for the next recorded history entry's overall
+    private float? pendingDisplayedOverall = null;
 
     // Speed tracking for algorithms
     public float LastDQNInferenceTime { get; private set; }
@@ -242,13 +246,13 @@ public class FeedbackManager : MonoBehaviour
     /// </summary>
     public FeedbackMessage GenerateFeedback(string transcribedText, float duration)
     {
-        return GenerateFeedback(transcribedText, duration, updateSessionScore: true);
+        return GenerateFeedback(transcribedText, duration, updateSessionScore: true, recordHistory: true);
     }
 
     /// <summary>
     /// Generate feedback based on voice analysis with option to update session score
     /// </summary>
-    public FeedbackMessage GenerateFeedback(string transcribedText, float duration, bool updateSessionScore)
+    public FeedbackMessage GenerateFeedback(string transcribedText, float duration, bool updateSessionScore, bool recordHistory = true)
     {
         // Start timing
         float startTime = Time.realtimeSinceStartup;
@@ -296,8 +300,8 @@ public class FeedbackManager : MonoBehaviour
         // Create feedback message
         FeedbackMessage feedback = FeedbackMessage.Create(action, confidence, currentPerformance, expectedImprovement);
 
-        // Update history
-        if (trackPerformance)
+        // Update history (only if tracking is enabled and caller allows recording)
+        if (trackPerformance && recordHistory)
         {
             UpdateHistory(currentPerformance, action);
         }
@@ -501,6 +505,18 @@ public class FeedbackManager : MonoBehaviour
         performanceHistory.Add(performance);
         feedbackHistory.Add(action);
 
+        // Keep a parallel list of overall scores for easy access by UI graphs
+        // Prefer the displayed overall (set by the comparison UI) if provided
+        float overallToAdd = performance.overall;
+        if (pendingDisplayedOverall.HasValue)
+        {
+            overallToAdd = Mathf.Clamp01(pendingDisplayedOverall.Value);
+            pendingDisplayedOverall = null;
+            if (verboseLogging)
+                Debug.Log($"FeedbackManager: using displayed overall {overallToAdd:F2} for history entry");
+        }
+        overallHistory.Add(overallToAdd);
+
         if (performanceHistory.Count > maxHistorySize)
         {
             performanceHistory.RemoveAt(0);
@@ -527,6 +543,14 @@ public class FeedbackManager : MonoBehaviour
         }
 
         return (average, improvement);
+    }
+
+    /// <summary>
+    /// Return a copy of the recorded per-question overall scores for the current session.
+    /// </summary>
+    public List<float> GetSessionOverallHistory()
+    {
+        return new List<float>(overallHistory);
     }
 
     /// <summary>
@@ -592,6 +616,27 @@ public class FeedbackManager : MonoBehaviour
     public void RecordPerformanceScore(InterviewPerformance performance)
     {
         UpdateSessionScore(performance);
+    }
+
+    /// <summary>
+    /// Set the overall score that should be used for the next history entry.
+    /// This allows the UI (comparison) to dictate what the bar graph will display.
+    /// </summary>
+    public void SetNextHistoryOverall(float overallDisplayed)
+    {
+        pendingDisplayedOverall = overallDisplayed;
+        if (verboseLogging)
+            Debug.Log($"FeedbackManager: pendingDisplayedOverall set to {overallDisplayed:F2}");
+    }
+
+    /// <summary>
+    /// Public wrapper to record a performance into the session history (used when player chooses feedback).
+    /// </summary>
+    public void RecordPerformanceHistory(InterviewPerformance performance, FeedbackAction action)
+    {
+        if (!trackPerformance || performance == null) return;
+        UpdateHistory(performance, action);
+        Debug.Log($"FeedbackManager: Recorded performance overall={performance.overall:F2} (action={action}), historyCount={performanceHistory.Count}");
     }
 
     /// <summary>
@@ -661,6 +706,7 @@ public class FeedbackManager : MonoBehaviour
     {
         performanceHistory.Clear();
         feedbackHistory.Clear();
+        overallHistory.Clear();
         lastPerformance = new InterviewPerformance { overall = 0.5f };
         
         // Reset session scores
