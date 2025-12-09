@@ -109,6 +109,6 @@ MonoBehaviour:
     speaker: {fileID: 11400000, guid: 26c52bff932409149bb156000eac7ddc, type: 2}
     isQuestion: 0
   randomizeSentences: 1
-  sentencesToUse: 5
+  sentencesToUse: 10
   background: {fileID: 21300000, guid: 33fb69851ac2bd14286543889ec6b54d, type: 3}
   nextScene: {fileID: 0}
